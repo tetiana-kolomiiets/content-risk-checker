@@ -14,9 +14,10 @@ export const envSchema = z.object({
 
   WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),
 
-  ANTHROPIC_API_KEY: z.string().min(1),
-  ANTHROPIC_MODEL: z.string().min(1).default('claude-opus-4-5'),
-  LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
+  OPENROUTER_API_KEY: z.string().min(1),
+  OPENROUTER_BASE_URL: z.string().url().default('https://openrouter.ai/api/v1'),
+  LLM_MODEL: z.string().default('anthropic/claude-opus-4'),
+  LLM_TIMEOUT_MS: z.coerce.number().default(15000),
 
   LOG_LEVEL: z
     .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal'])
