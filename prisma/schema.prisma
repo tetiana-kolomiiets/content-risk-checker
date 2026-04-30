@@ -19,12 +19,11 @@ enum ContentRiskSourceType {
 }
 
 enum ContentRiskStepName {
-  VALIDATE_INPUT
   NORMALIZE_TEXT
-  SAVE_RAW_INPUT
+  DETECT_DUPLICATE
   RUN_RULE_BASED_CHECKS
-  DERIVE_RISK_LEVEL
-  SAVE_RESULT
+  RUN_AI_ANALYSIS
+  AGGREGATE_RESULT
 }
 
 enum ContentRiskCategory {
