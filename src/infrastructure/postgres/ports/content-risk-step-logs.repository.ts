@@ -5,6 +5,7 @@ import { ContentRiskStepLog } from '../../../domain/content-risk-checks/types/co
 export interface ContentRiskStepLogsRepository {
   create(data: {
     checkId: string;
+    traceId: string;
     stepName: ContentRiskStepName;
     status: StepExecutionStatus;
     attempt?: number;

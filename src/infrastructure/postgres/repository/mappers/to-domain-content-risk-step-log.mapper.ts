@@ -9,6 +9,7 @@ export const toDomainContentRiskStepLog = (
   return {
     id: row.id,
     checkId: row.checkId,
+    traceId: row.traceId,
     stepName: row.stepName as ContentRiskStepName,
     status: row.status as StepExecutionStatus,
     attempt: row.attempt,

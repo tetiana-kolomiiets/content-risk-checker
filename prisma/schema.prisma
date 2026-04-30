@@ -54,6 +54,7 @@ enum StepExecutionStatus {
 model ContentRiskCheck {
   id              String                 @id @default(uuid())
   requestId       String
+  traceId         String
   sourceType      ContentRiskSourceType  @default(PLAIN_TEXT)
   status          ContentRiskCheckStatus @default(PENDING)
   currentStep     ContentRiskStepName?
@@ -64,6 +65,7 @@ model ContentRiskCheck {
   retryCount      Int                    @default(0)
   maxRetries      Int                    @default(3)
   replayOfCheckId String?
+  promptVersionId String?
   startedAt       DateTime?
   finishedAt      DateTime?
   createdAt       DateTime               @default(now())
@@ -75,8 +77,11 @@ model ContentRiskCheck {
   replayOfCheck  ContentRiskCheck?  @relation("ContentRiskCheckReplay", fields: [replayOfCheckId], references: [id], onDelete: SetNull)
   replayedChecks ContentRiskCheck[] @relation("ContentRiskCheckReplay")
 
+  promptVersion Prompt? @relation(fields: [promptVersionId], references: [id])
+
   @@index([requestId])
-  @@index([contentHash])
+  @@index([traceId])
+  @@index([contentHash, promptVersionId])
   @@index([status])
   @@index([status, currentStep])
   @@index([replayOfCheckId])
@@ -103,6 +108,7 @@ model ContentRiskAnalysisResult {
 model ContentRiskStepLog {
   id           String              @id @default(uuid())
   checkId      String
+  traceId      String
   stepName     ContentRiskStepName
   status       StepExecutionStatus
   attempt      Int                 @default(1)
@@ -118,5 +124,21 @@ model ContentRiskStepLog {
 
   @@index([checkId])
   @@index([checkId, stepName])
+  @@index([traceId])
   @@index([status])
+}
+
+model Prompt {
+  id        String   @id @default(uuid())
+  name      String
+  version   Int
+  template  String   @db.Text
+  model     String
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  checks ContentRiskCheck[]
+
+  @@unique([name, version])
+  @@index([name, isActive])
 }

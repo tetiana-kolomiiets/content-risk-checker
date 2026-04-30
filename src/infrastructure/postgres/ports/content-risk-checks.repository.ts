@@ -6,11 +6,13 @@ import { ContentRiskCheck } from '../../../domain/content-risk-checks/types/cont
 export interface ContentRiskChecksRepository {
   create(data: {
     requestId: string;
+    traceId: string;
     sourceType: ContentRiskSourceType;
     rawText: string;
     contentHash: string;
     maxRetries: number;
     replayOfCheckId?: string | null;
+    promptVersionId?: string | null;
   }): Promise<ContentRiskCheck | Error>;
 
   getById(id: string): Promise<ContentRiskCheck | Error>;
@@ -24,13 +26,18 @@ export interface ContentRiskChecksRepository {
     normalizedText?: string | null;
     errorMessage?: string | null;
     retryCount?: number;
+    promptVersionId?: string | null;
     startedAt?: Date | null;
     finishedAt?: Date | null;
   }): Promise<ContentRiskCheck | Error>;
 
-  findByContentHash(contentHash: string): Promise<ContentRiskCheck | Error>;
+  findByContentHash(
+    contentHash: string,
+    promptVersionId?: string | null,
+  ): Promise<ContentRiskCheck | Error>;
 
   findActiveByContentHash(
     contentHash: string,
+    promptVersionId?: string | null,
   ): Promise<ContentRiskCheck | Error>;
 }

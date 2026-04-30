@@ -4,6 +4,7 @@ import { StepExecutionStatus } from '../enums/step-execution-status.enum';
 export type ContentRiskStepLog = {
   id: string;
   checkId: string;
+  traceId: string;
   stepName: ContentRiskStepName;
   status: StepExecutionStatus;
   attempt: number;

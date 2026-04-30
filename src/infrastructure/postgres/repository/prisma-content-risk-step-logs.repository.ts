@@ -16,6 +16,7 @@ export class PrismaContentRiskStepLogsRepository implements ContentRiskStepLogsR
 
   async create(data: {
     checkId: string;
+    traceId: string;
     stepName: ContentRiskStepName;
     status: StepExecutionStatus;
     attempt?: number;
@@ -30,6 +31,7 @@ export class PrismaContentRiskStepLogsRepository implements ContentRiskStepLogsR
       const row = await this.prismaService.contentRiskStepLog.create({
         data: {
           checkId: data.checkId,
+          traceId: data.traceId,
           stepName: data.stepName,
           status: data.status,
           attempt: data.attempt,

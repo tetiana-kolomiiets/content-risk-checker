@@ -18,3 +18,7 @@ export const FAILED_TO_CREATE_CONTENT_RISK_STEP_LOG =
   'Failed to create content risk step log';
 export const FAILED_TO_GET_CONTENT_RISK_STEP_LOGS_BY_CHECK_ID =
   'Failed to get content risk step logs by check id';
+
+export const FAILED_TO_GET_ACTIVE_PROMPT_BY_NAME =
+  'Failed to get active prompt by name';
+export const FAILED_TO_GET_PROMPT_BY_ID = 'Failed to get prompt by id';

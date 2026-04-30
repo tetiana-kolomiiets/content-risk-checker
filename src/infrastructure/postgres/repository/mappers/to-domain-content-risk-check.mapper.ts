@@ -10,6 +10,7 @@ export const toDomainContentRiskCheck = (
   return {
     id: row.id,
     requestId: row.requestId,
+    traceId: row.traceId,
     sourceType: row.sourceType as ContentRiskSourceType,
     status: row.status as ContentRiskCheckStatus,
     currentStep: (row.currentStep as ContentRiskStepName | null) ?? null,
@@ -20,6 +21,7 @@ export const toDomainContentRiskCheck = (
     retryCount: row.retryCount,
     maxRetries: row.maxRetries,
     replayOfCheckId: row.replayOfCheckId ?? null,
+    promptVersionId: row.promptVersionId ?? null,
     startedAt: row.startedAt ?? null,
     finishedAt: row.finishedAt ?? null,
     createdAt: row.createdAt,
