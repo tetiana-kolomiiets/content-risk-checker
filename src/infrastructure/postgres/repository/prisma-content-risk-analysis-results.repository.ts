@@ -53,9 +53,7 @@ export class PrismaContentRiskAnalysisResultsRepository implements ContentRiskAn
       );
 
       if (!row) {
-        return new Error(
-          FAILED_TO_GET_CONTENT_RISK_ANALYSIS_RESULT_BY_CHECK_ID,
-        );
+        return null;
       }
 
       return toDomainContentRiskAnalysisResult(row);

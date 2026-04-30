@@ -2,6 +2,9 @@ import { ContentRiskCategory } from '../../../domain/content-risk-checks/enums/c
 import { ContentRiskLevel } from '../../../domain/content-risk-checks/enums/content-risk-level.enum';
 import { ContentRiskAnalysisResult } from '../../../domain/content-risk-checks/types/content-risk-analysis-result.type';
 
+export const CONTENT_RISK_ANALYSIS_RESULTS_REPOSITORY =
+  'CONTENT_RISK_ANALYSIS_RESULTS_REPOSITORY';
+
 export interface ContentRiskAnalysisResultsRepository {
   create(data: {
     checkId: string;
@@ -14,5 +17,7 @@ export interface ContentRiskAnalysisResultsRepository {
     summary?: string | null;
   }): Promise<ContentRiskAnalysisResult | Error>;
 
-  getByCheckId(checkId: string): Promise<ContentRiskAnalysisResult | Error>;
+  getByCheckId(
+    checkId: string,
+  ): Promise<ContentRiskAnalysisResult | null | Error>;
 }
