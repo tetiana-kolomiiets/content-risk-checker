@@ -2,6 +2,9 @@ import { ContentRiskStepName } from '../../../domain/content-risk-checks/enums/c
 import { StepExecutionStatus } from '../../../domain/content-risk-checks/enums/step-execution-status.enum';
 import { ContentRiskStepLog } from '../../../domain/content-risk-checks/types/content-risk-step-log.type';
 
+export const CONTENT_RISK_STEP_LOGS_REPOSITORY =
+  'CONTENT_RISK_STEP_LOGS_REPOSITORY';
+
 export interface ContentRiskStepLogsRepository {
   create(data: {
     checkId: string;

@@ -3,6 +3,8 @@ import { ContentRiskSourceType } from '../../../domain/content-risk-checks/enums
 import { ContentRiskStepName } from '../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
 import { ContentRiskCheck } from '../../../domain/content-risk-checks/types/content-risk-check.type';
 
+export const CONTENT_RISK_CHECKS_REPOSITORY = 'CONTENT_RISK_CHECKS_REPOSITORY';
+
 export interface ContentRiskChecksRepository {
   create(data: {
     requestId: string;
@@ -15,7 +17,7 @@ export interface ContentRiskChecksRepository {
     promptVersionId?: string | null;
   }): Promise<ContentRiskCheck | Error>;
 
-  getById(id: string): Promise<ContentRiskCheck | Error>;
+  getById(id: string): Promise<ContentRiskCheck | null | Error>;
 
   getMany(status?: ContentRiskCheckStatus): Promise<ContentRiskCheck[] | Error>;
 

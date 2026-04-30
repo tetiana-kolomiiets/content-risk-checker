@@ -54,7 +54,7 @@ export class PrismaContentRiskChecksRepository implements ContentRiskChecksRepos
       });
 
       if (!row) {
-        return new Error(FAILED_TO_GET_CONTENT_RISK_CHECK_BY_ID);
+        return null;
       }
 
       return toDomainContentRiskCheck(row);
