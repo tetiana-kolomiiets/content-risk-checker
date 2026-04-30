@@ -21,10 +21,10 @@ export class ContentRiskAnalysisResultDto {
   @ApiProperty()
   totalRulesChecked: number;
 
-  @ApiProperty()
+  @ApiProperty({ type: Object })
   flaggedFragments: unknown;
 
-  @ApiProperty()
+  @ApiProperty({ type: Object })
   matchedRules: unknown;
 
   @ApiProperty({ required: false, nullable: true })

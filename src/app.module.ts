@@ -9,7 +9,7 @@ import { TraceMiddleware } from './common/tracing/trace.middleware';
 import { ConfigModule } from './config/config.module';
 import type { EnvConfig } from './config/env.schema';
 import { PrismaModule } from './infrastructure/postgres/prisma/prisma.module';
-import { DebugModule } from './modules/main/debug/debug.module';
+import { ContentRiskChecksModule } from './modules/main/content-risk-checks/content-risk-checks.module';
 import { HealthModule } from './modules/main/health/health.module';
 
 @Module({
@@ -43,7 +43,7 @@ import { HealthModule } from './modules/main/health/health.module';
     }),
     PrismaModule,
     HealthModule,
-    ...(process.env.NODE_ENV === 'development' ? [DebugModule] : []),
+    ContentRiskChecksModule,
   ],
   controllers: [AppController],
   providers: [AppService],

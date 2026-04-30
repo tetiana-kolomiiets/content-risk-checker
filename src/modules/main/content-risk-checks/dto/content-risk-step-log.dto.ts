@@ -24,7 +24,7 @@ export class ContentRiskStepLogDto {
   @ApiProperty({ required: false, nullable: true })
   errorMessage?: string | null;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, type: Object })
   details?: unknown;
 
   @ApiProperty()
