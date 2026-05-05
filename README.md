@@ -29,6 +29,29 @@ step order, persists `ContentRiskStepLog` rows, and decides when to short-circui
 6. `npm run start:dev`
 7. Open http://localhost:3000/api for Swagger
 
+## Development
+
+### Backend
+
+```bash
+docker-compose up -d
+npm install
+npm run prisma:migrate
+npm run prisma:seed
+npm run start:all
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Open http://localhost:5173
+
 ## Process modes
 
 - `npm run start:all` — HTTP + worker in one process (default for dev)
