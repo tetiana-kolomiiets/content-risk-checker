@@ -10,6 +10,8 @@ import { ContentRiskChecksController } from './content-risk-checks.controller';
 import { ContentRiskChecksPipelineService } from './content-risk-checks-pipeline.service';
 import { ContentRiskChecksProcessor } from './content-risk-checks.processor';
 import { ContentRiskChecksService } from './content-risk-checks.service';
+import { AggregateResultStep } from './pipeline/steps/aggregate-result.step';
+import { AiAnalysisStep } from './pipeline/steps/ai-analysis.step';
 import { DetectDuplicateStep } from './pipeline/steps/detect-duplicate.step';
 import { NormalizeTextStep } from './pipeline/steps/normalize-text.step';
 import { RuleBasedScanStep } from './pipeline/steps/rule-based-scan.step';
@@ -24,6 +26,8 @@ import { RuleBasedScanStep } from './pipeline/steps/rule-based-scan.step';
     NormalizeTextStep,
     DetectDuplicateStep,
     RuleBasedScanStep,
+    AiAnalysisStep,
+    AggregateResultStep,
     {
       provide: CONTENT_RISK_CHECKS_REPOSITORY,
       useClass: PrismaContentRiskChecksRepository,
