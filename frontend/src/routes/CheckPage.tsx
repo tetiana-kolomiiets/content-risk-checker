@@ -1,13 +1,12 @@
 import { useParams } from 'react-router-dom';
+import { CheckDetail } from '@/components/checks/CheckDetail';
 
 export function CheckPage() {
   const { id } = useParams<{ id: string }>();
 
-  return (
-    <div className="rounded-lg border border-border bg-surface p-8">
-      <p className="text-text-secondary">
-        Check detail for <code className="font-mono">{id}</code> coming in F5.
-      </p>
-    </div>
-  );
+  if (!id) {
+    return <div className="text-text-tertiary">Invalid URL</div>;
+  }
+
+  return <CheckDetail checkId={id} />;
 }
