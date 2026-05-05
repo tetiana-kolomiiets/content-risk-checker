@@ -6,4 +6,6 @@ export interface PromptsRepository {
   getActiveByName(name: string): Promise<Prompt | null | Error>;
 
   getById(id: string): Promise<Prompt | null | Error>;
+
+  invalidateCache(name?: string): void;
 }

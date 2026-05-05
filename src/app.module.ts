@@ -12,6 +12,7 @@ import { LlmModule } from './infrastructure/llm/llm.module';
 import { PrismaModule } from './infrastructure/postgres/prisma/prisma.module';
 import { ContentRiskChecksModule } from './modules/main/content-risk-checks/content-risk-checks.module';
 import { HealthModule } from './modules/main/health/health.module';
+import { PromptsModule } from './modules/main/prompts/prompts.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { HealthModule } from './modules/main/health/health.module';
     LlmModule,
     HealthModule,
     ContentRiskChecksModule,
+    PromptsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

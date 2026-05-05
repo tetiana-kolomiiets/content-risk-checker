@@ -13,8 +13,12 @@
     "start:all": "node dist/main.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "prisma db seed",
     "test": "jest",
     "lint": "eslint \"src/**/*.ts\" --fix"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.4",

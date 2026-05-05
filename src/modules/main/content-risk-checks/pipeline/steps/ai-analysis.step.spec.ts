@@ -69,6 +69,7 @@ describe('AiAnalysisStep', () => {
     promptsRepo = {
       getActiveByName: jest.fn(),
       getById: jest.fn(),
+      invalidateCache: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({

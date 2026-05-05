@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
+import { Prompt } from '../../../domain/content-risk-checks/types/prompt.type';
 import { PromptsRepository } from '../ports/prompts.repository';
 import { PrismaService } from '../prisma/prisma.service';
 import { toDomainPrompt } from './mappers/to-domain-prompt.mapper';
@@ -7,32 +9,78 @@ import {
   FAILED_TO_GET_PROMPT_BY_ID,
 } from './repository-error-messages';
 
+const CACHE_TTL_MS = 60_000;
+
 @Injectable()
 export class PrismaPromptsRepository implements PromptsRepository {
-  constructor(private readonly prismaService: PrismaService) {}
+  private readonly cache = new Map<
+    string,
+    { prompt: Prompt; expiresAt: number }
+  >();
 
-  async getActiveByName(name: string) {
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(PrismaPromptsRepository.name);
+  }
+
+  async getActiveByName(name: string): Promise<Prompt | null | Error> {
+    const startedAt = Date.now();
+    const cached = this.cache.get(name);
+    if (cached && cached.expiresAt > startedAt) {
+      this.logger.debug(
+        { name, durationMs: Date.now() - startedAt, cache: 'hit' },
+        'Active prompt cache hit',
+      );
+      return cached.prompt;
+    }
+
     try {
       const row = await this.prismaService.prompt.findFirst({
         where: { name, isActive: true },
         orderBy: { version: 'desc' },
       });
 
-      return row ? toDomainPrompt(row) : null;
+      if (!row) {
+        this.logger.debug(
+          { name, durationMs: Date.now() - startedAt, cache: 'miss' },
+          'Active prompt not found',
+        );
+        return null;
+      }
+
+      const prompt = toDomainPrompt(row);
+      this.cache.set(name, {
+        prompt,
+        expiresAt: Date.now() + CACHE_TTL_MS,
+      });
+      this.logger.debug(
+        { name, durationMs: Date.now() - startedAt, cache: 'miss' },
+        'Active prompt cache miss — loaded from DB',
+      );
+      return prompt;
     } catch {
       return new Error(FAILED_TO_GET_ACTIVE_PROMPT_BY_NAME);
     }
   }
 
-  async getById(id: string) {
+  async getById(id: string): Promise<Prompt | null | Error> {
     try {
       const row = await this.prismaService.prompt.findUnique({
         where: { id },
       });
-
       return row ? toDomainPrompt(row) : null;
     } catch {
       return new Error(FAILED_TO_GET_PROMPT_BY_ID);
+    }
+  }
+
+  invalidateCache(name?: string): void {
+    if (name) {
+      this.cache.delete(name);
+    } else {
+      this.cache.clear();
     }
   }
 }
