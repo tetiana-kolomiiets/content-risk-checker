@@ -16,8 +16,10 @@ export const envSchema = z.object({
 
   OPENROUTER_API_KEY: z.string().min(1),
   OPENROUTER_BASE_URL: z.string().url().default('https://openrouter.ai/api/v1'),
-  LLM_MODEL: z.string().default('anthropic/claude-opus-4'),
-  LLM_TIMEOUT_MS: z.coerce.number().default(15000),
+  OPENROUTER_APP_NAME: z.string().default('content-risk-checker'),
+  OPENROUTER_APP_URL: z.string().url().default('http://localhost:3000'),
+  LLM_MODEL: z.string().default('anthropic/claude-opus-4-5'),
+  LLM_TIMEOUT_MS: z.coerce.number().int().min(1000).default(15000),
 
   LOG_LEVEL: z
     .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal'])

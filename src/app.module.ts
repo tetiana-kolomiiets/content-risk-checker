@@ -8,6 +8,7 @@ import { TraceContext } from './common/tracing/trace-context';
 import { TraceMiddleware } from './common/tracing/trace.middleware';
 import { ConfigModule } from './config/config.module';
 import type { EnvConfig } from './config/env.schema';
+import { LlmModule } from './infrastructure/llm/llm.module';
 import { PrismaModule } from './infrastructure/postgres/prisma/prisma.module';
 import { ContentRiskChecksModule } from './modules/main/content-risk-checks/content-risk-checks.module';
 import { HealthModule } from './modules/main/health/health.module';
@@ -28,6 +29,7 @@ import { HealthModule } from './modules/main/health/health.module';
             paths: [
               '*.apiKey',
               '*.password',
+              '*.OPENROUTER_API_KEY',
               'req.headers.authorization',
               'req.headers.cookie',
             ],
@@ -42,6 +44,7 @@ import { HealthModule } from './modules/main/health/health.module';
       }),
     }),
     PrismaModule,
+    LlmModule,
     HealthModule,
     ContentRiskChecksModule,
   ],
