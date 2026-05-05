@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import {
+  BadRequestException,
   Inject,
   Injectable,
   InternalServerErrorException,
@@ -7,6 +8,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
+import { ContentRiskCheckStatus } from '../../../domain/content-risk-checks/enums/content-risk-check-status.enum';
 import { ContentRiskSourceType } from '../../../domain/content-risk-checks/enums/content-risk-source-type.enum';
 import {
   CONTENT_RISK_ANALYSIS_RESULTS_REPOSITORY,
@@ -109,6 +111,69 @@ export class ContentRiskChecksService {
     });
 
     return contentRiskCheckToDto(check);
+  }
+
+  async replayCheck(
+    originalId: string,
+    traceId: string,
+  ): Promise<ContentRiskCheckDto> {
+    const original = this.unwrap(await this.checksRepo.getById(originalId));
+    if (!original) {
+      throw new NotFoundException('Original check not found');
+    }
+
+    if (
+      original.status !== ContentRiskCheckStatus.COMPLETED &&
+      original.status !== ContentRiskCheckStatus.FAILED
+    ) {
+      throw new BadRequestException({
+        code: 'INVALID_REPLAY_STATE',
+        message: `Cannot replay check in status ${original.status}. Only COMPLETED or FAILED checks can be replayed.`,
+      });
+    }
+
+    const activePrompt = this.unwrap(
+      await this.promptsRepo.getActiveByName(ACTIVE_PROMPT_NAME),
+    );
+    if (!activePrompt) {
+      throw new ServiceUnavailableException({
+        code: 'NO_ACTIVE_PROMPT',
+        message: 'No active prompt configured',
+      });
+    }
+
+    const newCheck = this.unwrap(
+      await this.checksRepo.create({
+        rawText: original.rawText,
+        contentHash: original.contentHash,
+        traceId,
+        promptVersionId: activePrompt.id,
+        replayOfCheckId: original.id,
+        sourceType: original.sourceType,
+        requestId: randomUUID(),
+        maxRetries: DEFAULT_MAX_RETRIES,
+      }),
+    );
+
+    await this.analysisQueue.enqueue({
+      checkId: newCheck.id,
+      traceId,
+    });
+
+    if (activePrompt.id !== original.promptVersionId) {
+      this.logger.info(
+        {
+          replay_with_new_prompt: true,
+          newCheckId: newCheck.id,
+          originalCheckId: original.id,
+          oldPromptVersion: original.promptVersionId,
+          newPromptVersion: activePrompt.id,
+        },
+        'Replay with different prompt version',
+      );
+    }
+
+    return contentRiskCheckToDto(newCheck);
   }
 
   async getCheckById(id: string): Promise<ContentRiskCheckDto> {

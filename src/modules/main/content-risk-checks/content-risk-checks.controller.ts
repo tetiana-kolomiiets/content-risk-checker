@@ -4,7 +4,6 @@ import {
   Controller,
   Get,
   HttpCode,
-  NotImplementedException,
   Param,
   ParseUUIDPipe,
   Post,
@@ -77,10 +76,12 @@ export class ContentRiskChecksController {
   @ApiOperation({
     summary: 'Replay an existing check with current active prompt',
   })
-  replay(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  @ApiAcceptedResponse({ type: ContentRiskCheckDto })
+  @ApiNotFoundResponse({ description: 'Original check not found' })
+  async replay(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<ContentRiskCheckDto> {
-    throw new NotImplementedException();
+    const traceId = TraceContext.get() ?? randomUUID();
+    return this.service.replayCheck(id, traceId);
   }
 }
