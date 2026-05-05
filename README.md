@@ -12,12 +12,12 @@ accessed through **OpenRouter** as the LLM gateway.
 HTTP → Controller → Service → Queue → Worker → PipelineRunner → 5 steps → DB
 ```
 
-The five pipeline steps run in fixed order: `NORMALIZE_TEXT` →
-`DETECT_DUPLICATE` → `RUN_RULE_BASED_CHECKS` → `RUN_AI_ANALYSIS` →
-`AGGREGATE_RESULT`. Each step is an isolated `@Injectable` returning a
-discriminated `StepResult<O>`; the runner is the only component that knows the
-step order, persists `ContentRiskStepLog` rows, and decides when to short-circuit
-(duplicate detection) or finalize.
+The six pipeline steps run in fixed order: `NORMALIZE_TEXT` →
+`DETECT_DUPLICATE` → `RUN_RULE_BASED_CHECKS` → `RETRIEVE_AI_CONTEXT` →
+`RUN_AI_ANALYSIS` → `AGGREGATE_RESULT`. Each step is an isolated `@Injectable`
+returning a discriminated `StepResult<O>`; the runner is the only component that
+knows the step order, persists `ContentRiskStepLog` rows, and decides when to
+short-circuit (duplicate detection) or finalize.
 
 ## Quickstart
 
@@ -150,6 +150,51 @@ curl -X POST http://localhost:3000/api/v1/content-risk-checks \
 | API keys (usage only) | `OPENROUTER_API_KEY` via ConfigService, redacted in Pino logs |
 | Rate limiting | `@nestjs/throttler` per-endpoint via `@Throttle` decorators |
 | Input validation | `class-validator` on DTOs + Zod on LLM output |
+
+## AI Memory (Few-Shot Examples)
+
+The pipeline includes a `RETRIEVE_AI_CONTEXT` step that injects similar past
+decisions as few-shot examples into the AI prompt.
+
+How it works:
+
+1. Past `COMPLETED` checks store their embedding + final decision in
+   `AiAnalysisMemory`.
+2. New checks compute an embedding for the normalized text.
+3. Top-N (default 3) most similar past records (cosine ≥ 0.85) get injected as
+   examples into the prompt's `{examples_section}` placeholder.
+4. The AI step receives the enriched prompt; output validation is unchanged.
+5. After `AGGREGATE_RESULT`, the runner persists a new memory row for the
+   current check (skipped on the duplicate-detection short-circuit and when the
+   embedding could not be computed).
+
+Why this is **not** "agent magic":
+
+- The backend deterministically decides retrieval — the LLM does not choose
+  what to remember.
+- Pipeline order remains hardcoded in `ContentRiskChecksPipelineService.run`.
+- AI output is still Zod-validated.
+- Memory persistence is a side effect of the runner, not an AI decision.
+
+Configuration (env):
+
+| Var | Default | Purpose |
+|---|---|---|
+| `AI_MEMORY_ENABLED` | `true` | Master switch for retrieval + persistence |
+| `AI_MEMORY_TOP_N` | `3` | Max number of examples injected |
+| `AI_MEMORY_MIN_SIMILARITY` | `0.85` | Cosine threshold for inclusion |
+| `AI_EMBEDDING_MODEL` | `openai/text-embedding-3-small` | OpenRouter embedding model |
+| `AI_EMBEDDING_TIMEOUT_MS` | `10000` | Per-call timeout |
+
+Known limitations:
+
+- Embeddings are external API calls (~$0.02/1M tokens via OpenRouter).
+- Cold start: the first ~5 checks per prompt version see no examples.
+- Stored snippets are not PII-aware (200 chars max).
+- pgvector is required for similarity search.
+- Embedding-API failure is graceful: the step returns ok with
+  `examplesFound=0` and `embeddingErrorCode` populated; the AI step still runs
+  with empty examples; no memory row is written.
 
 ## Architecture Decisions
 
