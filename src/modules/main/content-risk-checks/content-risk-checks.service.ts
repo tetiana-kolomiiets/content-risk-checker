@@ -1,12 +1,13 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   Inject,
   Injectable,
   InternalServerErrorException,
-  Logger,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
-import { ContentRiskCheckStatus } from '../../../domain/content-risk-checks/enums/content-risk-check-status.enum';
+import { PinoLogger } from 'nestjs-pino';
+import { ContentRiskSourceType } from '../../../domain/content-risk-checks/enums/content-risk-source-type.enum';
 import {
   CONTENT_RISK_ANALYSIS_RESULTS_REPOSITORY,
   ContentRiskAnalysisResultsRepository,
@@ -19,8 +20,11 @@ import {
   CONTENT_RISK_STEP_LOGS_REPOSITORY,
   ContentRiskStepLogsRepository,
 } from '../../../infrastructure/postgres/ports/content-risk-step-logs.repository';
-import { TraceContext } from '../../../common/tracing/trace-context';
-import { ContentRiskChecksPipelineService } from './content-risk-checks-pipeline.service';
+import {
+  PROMPTS_REPOSITORY,
+  PromptsRepository,
+} from '../../../infrastructure/postgres/ports/prompts.repository';
+import { AnalysisQueue } from './analysis.queue';
 import { ContentRiskCheckDto } from './dto/content-risk-check.dto';
 import { ContentRiskStepLogDto } from './dto/content-risk-step-log.dto';
 import { GetContentRiskCheckDto } from './dto/get-content-risk-check.dto';
@@ -28,10 +32,11 @@ import { GetContentRiskChecksOutputDto } from './dto/get-content-risk-checks-out
 import { contentRiskCheckToDto } from './mappers/content-risk-check-to-dto.mapper';
 import { contentRiskStepLogToDto } from './mappers/content-risk-step-log-to-dto.mapper';
 
+const ACTIVE_PROMPT_NAME = 'content-risk-analysis';
+const DEFAULT_MAX_RETRIES = 3;
+
 @Injectable()
 export class ContentRiskChecksService {
-  private readonly logger = new Logger(ContentRiskChecksService.name);
-
   constructor(
     @Inject(CONTENT_RISK_CHECKS_REPOSITORY)
     private readonly checksRepo: ContentRiskChecksRepository,
@@ -39,8 +44,64 @@ export class ContentRiskChecksService {
     private readonly analysisResultsRepo: ContentRiskAnalysisResultsRepository,
     @Inject(CONTENT_RISK_STEP_LOGS_REPOSITORY)
     private readonly stepLogsRepo: ContentRiskStepLogsRepository,
-    private readonly contentRiskChecksPipelineService: ContentRiskChecksPipelineService,
-  ) {}
+    @Inject(PROMPTS_REPOSITORY)
+    private readonly promptsRepo: PromptsRepository,
+    private readonly analysisQueue: AnalysisQueue,
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(ContentRiskChecksService.name);
+  }
+
+  async createCheck(input: {
+    text: string;
+    sourceType?: ContentRiskSourceType;
+    traceId: string;
+  }): Promise<ContentRiskCheckDto> {
+    const contentHash = createHash('sha256').update(input.text).digest('hex');
+
+    const activePrompt = this.unwrap(
+      await this.promptsRepo.getActiveByName(ACTIVE_PROMPT_NAME),
+    );
+    if (!activePrompt) {
+      throw new ServiceUnavailableException({
+        code: 'NO_ACTIVE_PROMPT',
+        message: 'No active prompt configured',
+      });
+    }
+
+    const existing = this.unwrap(
+      await this.checksRepo.findActiveByContentHash(
+        contentHash,
+        activePrompt.id,
+      ),
+    );
+    if (existing) {
+      this.logger.info(
+        { checkId: existing.id, idempotent_hit: true },
+        'Returning existing completed check',
+      );
+      return contentRiskCheckToDto(existing);
+    }
+
+    const check = this.unwrap(
+      await this.checksRepo.create({
+        rawText: input.text,
+        contentHash,
+        traceId: input.traceId,
+        promptVersionId: activePrompt.id,
+        sourceType: input.sourceType ?? ContentRiskSourceType.PLAIN_TEXT,
+        requestId: randomUUID(),
+        maxRetries: DEFAULT_MAX_RETRIES,
+      }),
+    );
+
+    await this.analysisQueue.enqueue({
+      checkId: check.id,
+      traceId: input.traceId,
+    });
+
+    return contentRiskCheckToDto(check);
+  }
 
   async getCheckById(id: string): Promise<ContentRiskCheckDto> {
     const check = this.unwrap(await this.checksRepo.getById(id));
@@ -62,22 +123,6 @@ export class ContentRiskChecksService {
     const checks = this.unwrap(await this.checksRepo.getMany(query.status));
 
     return { items: checks.map((check) => contentRiskCheckToDto(check)) };
-  }
-
-  // TODO: REMOVE after Prompt 14
-  async _debugRunPipeline(checkId: string): Promise<void> {
-    const traceId = TraceContext.get() ?? randomUUID();
-    try {
-      await this.contentRiskChecksPipelineService.run(checkId, traceId);
-    } catch (err) {
-      await this.checksRepo.update({
-        id: checkId,
-        status: ContentRiskCheckStatus.FAILED,
-        finishedAt: new Date(),
-        errorMessage: (err as Error).message,
-      });
-      throw err;
-    }
   }
 
   async getStepLogs(checkId: string): Promise<ContentRiskStepLogDto[]> {

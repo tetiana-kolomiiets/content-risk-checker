@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   Body,
   Controller,
@@ -10,11 +11,13 @@ import {
   Query,
 } from '@nestjs/common';
 import {
+  ApiAcceptedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { TraceContext } from '../../../common/tracing/trace-context';
 import { ContentRiskChecksService } from './content-risk-checks.service';
 import { ContentRiskCheckDto } from './dto/content-risk-check.dto';
 import { ContentRiskStepLogDto } from './dto/content-risk-step-log.dto';
@@ -57,11 +60,16 @@ export class ContentRiskChecksController {
   @Post()
   @HttpCode(202)
   @ApiOperation({ summary: 'Submit text for risk analysis' })
-  create(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  @ApiAcceptedResponse({ type: ContentRiskCheckDto })
+  async create(
     @Body() dto: CreateContentRiskCheckDto,
   ): Promise<ContentRiskCheckDto> {
-    throw new NotImplementedException();
+    const traceId = TraceContext.get() ?? randomUUID();
+    return this.service.createCheck({
+      text: dto.text,
+      sourceType: dto.sourceType,
+      traceId,
+    });
   }
 
   @Post(':id/replay')
@@ -74,17 +82,5 @@ export class ContentRiskChecksController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<ContentRiskCheckDto> {
     throw new NotImplementedException();
-  }
-
-  // TODO: REMOVE after Prompt 14
-  @Post(':id/_debug-run')
-  @ApiOperation({
-    summary: 'DEBUG: run pipeline synchronously (remove after queue is wired)',
-  })
-  async debugRun(
-    @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<ContentRiskCheckDto> {
-    await this.service._debugRunPipeline(id);
-    return this.service.getCheckById(id);
   }
 }
