@@ -21,6 +21,12 @@ export const envSchema = z.object({
   LLM_MODEL: z.string().default('anthropic/claude-opus-4-5'),
   LLM_TIMEOUT_MS: z.coerce.number().int().min(1000).default(15000),
 
+  AI_MEMORY_ENABLED: z.coerce.boolean().default(true),
+  AI_MEMORY_TOP_N: z.coerce.number().int().min(0).max(10).default(3),
+  AI_MEMORY_MIN_SIMILARITY: z.coerce.number().min(0).max(1).default(0.85),
+  AI_EMBEDDING_MODEL: z.string().default('openai/text-embedding-3-small'),
+  AI_EMBEDDING_TIMEOUT_MS: z.coerce.number().int().min(1000).default(10000),
+
   LOG_LEVEL: z
     .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal'])
     .default('info'),

@@ -72,6 +72,7 @@ model ContentRiskCheck {
 
   analysisResult ContentRiskAnalysisResult?
   stepLogs       ContentRiskStepLog[]
+  aiMemory       AiAnalysisMemory?
 
   replayOfCheck  ContentRiskCheck?  @relation("ContentRiskCheckReplay", fields: [replayOfCheckId], references: [id], onDelete: SetNull)
   replayedChecks ContentRiskCheck[] @relation("ContentRiskCheckReplay")
@@ -136,8 +137,28 @@ model Prompt {
   isActive  Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  checks ContentRiskCheck[]
+  checks    ContentRiskCheck[]
+  aiMemories AiAnalysisMemory[]
 
   @@unique([name, version])
   @@index([name, isActive])
+}
+
+model AiAnalysisMemory {
+  id              String                @id @default(uuid())
+  checkId         String                @unique
+  embedding       Unsupported("vector(1536)")
+  embeddingModel  String
+  contentSnippet  String                @db.Text
+  contentHash     String
+  finalRiskLevel  ContentRiskLevel
+  categories      ContentRiskCategory[]
+  rationale       String                @db.Text
+  promptVersionId String
+  createdAt       DateTime              @default(now())
+
+  check         ContentRiskCheck @relation(fields: [checkId], references: [id], onDelete: Cascade)
+  promptVersion Prompt           @relation(fields: [promptVersionId], references: [id])
+
+  @@index([promptVersionId, createdAt])
 }
