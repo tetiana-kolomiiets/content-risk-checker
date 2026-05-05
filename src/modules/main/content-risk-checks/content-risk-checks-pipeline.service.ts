@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
+import { isPrismaUniqueConstraintError } from '../../../common/utils/prisma-errors';
 import { ContentRiskCheckStatus } from '../../../domain/content-risk-checks/enums/content-risk-check-status.enum';
 import { ContentRiskStepName } from '../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
 import { StepExecutionStatus } from '../../../domain/content-risk-checks/enums/step-execution-status.enum';
@@ -68,7 +69,9 @@ export class ContentRiskChecksPipelineService {
       attempt,
     );
 
-    if (dedupeOutput.duplicateOfCheckId !== null) {
+    const ranOwnAnalysis = dedupeOutput.duplicateOfCheckId === null;
+
+    if (!ranOwnAnalysis) {
       this.logger.info(
         { duplicateOfCheckId: dedupeOutput.duplicateOfCheckId, checkId },
         'Duplicate detected, skipping pipeline',
@@ -117,21 +120,121 @@ export class ContentRiskChecksPipelineService {
       }
     }
 
-    const finalized = await this.checksRepo.update({
+    await this.finalizeCompleted(
+      checkId,
+      check.contentHash,
+      check.promptVersionId!,
+      dedupeOutput.duplicateOfCheckId,
+      ranOwnAnalysis,
+    );
+
+    this.logger.info({ checkId, status: 'COMPLETED' }, 'Pipeline completed');
+  }
+
+  private async finalizeCompleted(
+    checkId: string,
+    contentHash: string,
+    promptVersionId: string,
+    duplicateOfCheckId: string | null,
+    ranOwnAnalysis: boolean,
+  ): Promise<void> {
+    try {
+      const finalized = await this.checksRepo.update({
+        id: checkId,
+        status: ContentRiskCheckStatus.COMPLETED,
+        currentStep: null,
+        finishedAt: new Date(),
+        replayOfCheckId: duplicateOfCheckId,
+      });
+      if (finalized instanceof Error) {
+        throw new PipelineFailedError(
+          ContentRiskStepName.AGGREGATE_RESULT,
+          'FINALIZE_FAILED',
+          finalized.message,
+        );
+      }
+      return;
+    } catch (err) {
+      if (!isPrismaUniqueConstraintError(err)) throw err;
+    }
+
+    // Race lost: another concurrent pipeline finalized first. Adopt its result.
+    const winnerLookup = await this.checksRepo.findActiveByContentHash(
+      contentHash,
+      promptVersionId,
+    );
+    if (winnerLookup instanceof Error) {
+      throw new PipelineFailedError(
+        ContentRiskStepName.AGGREGATE_RESULT,
+        'FINALIZE_RACE_LOOKUP_FAILED',
+        winnerLookup.message,
+      );
+    }
+    if (!winnerLookup || winnerLookup.id === checkId) {
+      throw new PipelineFailedError(
+        ContentRiskStepName.AGGREGATE_RESULT,
+        'FINALIZE_RACE_NO_WINNER',
+        'P2002 raised but no winning check found',
+      );
+    }
+    const winner = winnerLookup;
+
+    const winnerResult = await this.analysisResultsRepo.getByCheckId(winner.id);
+    if (winnerResult instanceof Error || !winnerResult) {
+      throw new PipelineFailedError(
+        ContentRiskStepName.AGGREGATE_RESULT,
+        'FINALIZE_RACE_WINNER_RESULT_MISSING',
+        `Winner check ${winner.id} has no analysis result`,
+      );
+    }
+
+    if (ranOwnAnalysis) {
+      const deleted = await this.analysisResultsRepo.delete(checkId);
+      if (deleted instanceof Error) {
+        throw new PipelineFailedError(
+          ContentRiskStepName.AGGREGATE_RESULT,
+          'FINALIZE_RACE_DELETE_FAILED',
+          deleted.message,
+        );
+      }
+      const copied = await this.analysisResultsRepo.create({
+        checkId,
+        finalRiskLevel: winnerResult.finalRiskLevel,
+        categories: winnerResult.categories,
+        matchedRulesCount: winnerResult.matchedRulesCount,
+        totalRulesChecked: winnerResult.totalRulesChecked,
+        flaggedFragments: winnerResult.flaggedFragments,
+        matchedRules: winnerResult.matchedRules,
+        summary: winnerResult.summary,
+      });
+      if (copied instanceof Error) {
+        throw new PipelineFailedError(
+          ContentRiskStepName.AGGREGATE_RESULT,
+          'FINALIZE_RACE_COPY_FAILED',
+          copied.message,
+        );
+      }
+    }
+
+    const refinalized = await this.checksRepo.update({
       id: checkId,
       status: ContentRiskCheckStatus.COMPLETED,
       currentStep: null,
       finishedAt: new Date(),
+      replayOfCheckId: winner.id,
     });
-    if (finalized instanceof Error) {
+    if (refinalized instanceof Error) {
       throw new PipelineFailedError(
         ContentRiskStepName.AGGREGATE_RESULT,
-        'FINALIZE_FAILED',
-        finalized.message,
+        'FINALIZE_RACE_REFINALIZE_FAILED',
+        refinalized.message,
       );
     }
 
-    this.logger.info({ checkId, status: 'COMPLETED' }, 'Pipeline completed');
+    this.logger.info(
+      { winnerCheckId: winner.id, loserCheckId: checkId },
+      'Race lost on finalize, copied winner result',
+    );
   }
 
   private async loadAndPrepareCheck(checkId: string) {

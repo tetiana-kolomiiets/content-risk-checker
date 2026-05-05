@@ -6,6 +6,7 @@ import { ContentRiskAnalysisResultsRepository } from '../ports/content-risk-anal
 import { PrismaService } from '../prisma/prisma.service';
 import {
   FAILED_TO_CREATE_CONTENT_RISK_ANALYSIS_RESULT,
+  FAILED_TO_DELETE_CONTENT_RISK_ANALYSIS_RESULT,
   FAILED_TO_GET_CONTENT_RISK_ANALYSIS_RESULT_BY_CHECK_ID,
 } from './repository-error-messages';
 import { toDomainContentRiskAnalysisResult } from './mappers/to-domain-content-risk-analysis-result.mapper';
@@ -59,6 +60,16 @@ export class PrismaContentRiskAnalysisResultsRepository implements ContentRiskAn
       return toDomainContentRiskAnalysisResult(row);
     } catch {
       return new Error(FAILED_TO_GET_CONTENT_RISK_ANALYSIS_RESULT_BY_CHECK_ID);
+    }
+  }
+
+  async delete(checkId: string): Promise<void | Error> {
+    try {
+      await this.prismaService.contentRiskAnalysisResult.deleteMany({
+        where: { checkId },
+      });
+    } catch {
+      return new Error(FAILED_TO_DELETE_CONTENT_RISK_ANALYSIS_RESULT);
     }
   }
 }

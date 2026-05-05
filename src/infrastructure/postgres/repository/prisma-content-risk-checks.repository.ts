@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { isPrismaUniqueConstraintError } from '../../../common/utils/prisma-errors';
 import { ContentRiskCheckStatus } from '../../../domain/content-risk-checks/enums/content-risk-check-status.enum';
 import { ContentRiskSourceType } from '../../../domain/content-risk-checks/enums/content-risk-source-type.enum';
 import { ContentRiskStepName } from '../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
@@ -84,6 +85,7 @@ export class PrismaContentRiskChecksRepository implements ContentRiskChecksRepos
     errorMessage?: string | null;
     retryCount?: number;
     promptVersionId?: string | null;
+    replayOfCheckId?: string | null;
     startedAt?: Date | null;
     finishedAt?: Date | null;
   }) {
@@ -97,13 +99,18 @@ export class PrismaContentRiskChecksRepository implements ContentRiskChecksRepos
           errorMessage: data.errorMessage,
           retryCount: data.retryCount,
           promptVersionId: data.promptVersionId,
+          replayOfCheckId: data.replayOfCheckId,
           startedAt: data.startedAt,
           finishedAt: data.finishedAt,
         },
       });
 
       return toDomainContentRiskCheck(row);
-    } catch {
+    } catch (err) {
+      // Surface unique-constraint violations so the pipeline can run race-fallback.
+      if (isPrismaUniqueConstraintError(err)) {
+        throw err;
+      }
       return new Error(FAILED_TO_UPDATE_CONTENT_RISK_CHECK);
     }
   }

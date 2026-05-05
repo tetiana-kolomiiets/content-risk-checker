@@ -20,4 +20,6 @@ export interface ContentRiskAnalysisResultsRepository {
   getByCheckId(
     checkId: string,
   ): Promise<ContentRiskAnalysisResult | null | Error>;
+
+  delete(checkId: string): Promise<void | Error>;
 }

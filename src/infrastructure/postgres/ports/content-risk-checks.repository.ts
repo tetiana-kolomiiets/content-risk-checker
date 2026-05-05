@@ -21,6 +21,9 @@ export interface ContentRiskChecksRepository {
 
   getMany(status?: ContentRiskCheckStatus): Promise<ContentRiskCheck[] | Error>;
 
+  // Throws on Prisma unique-constraint violation (P2002) so the pipeline can
+  // detect a lost finalize race against the partial unique index. All other
+  // failures are wrapped as Error per the standard repository contract.
   update(data: {
     id: string;
     status?: ContentRiskCheckStatus;
@@ -29,6 +32,7 @@ export interface ContentRiskChecksRepository {
     errorMessage?: string | null;
     retryCount?: number;
     promptVersionId?: string | null;
+    replayOfCheckId?: string | null;
     startedAt?: Date | null;
     finishedAt?: Date | null;
   }): Promise<ContentRiskCheck | Error>;

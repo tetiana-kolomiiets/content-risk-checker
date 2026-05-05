@@ -52,6 +52,14 @@ export class ContentRiskChecksService {
     this.logger.setContext(ContentRiskChecksService.name);
   }
 
+  // Idempotency strategy (defense in depth):
+  // 1. Service-level fast-path: check for existing COMPLETED, return early if found.
+  // 2. DB-level constraint: unique partial index on (contentHash, promptVersionId)
+  //    WHERE status='COMPLETED' AND replayOfCheckId IS NULL.
+  // 3. Pipeline-level: DetectDuplicate step copies the result from an earlier winner
+  //    when its lookup catches a concurrent COMPLETED check first.
+  // 4. Race fallback: if pipeline finalize hits the unique constraint (P2002),
+  //    PipelineRunner copies the winner's analysis result and marks itself a replay.
   async createCheck(input: {
     text: string;
     sourceType?: ContentRiskSourceType;
