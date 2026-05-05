@@ -125,7 +125,7 @@ curl -X POST http://localhost:3000/api/v1/content-risk-checks \
 
 | PDP requirement | File / feature |
 |---|---|
-| Service orchestration (step-based) | `src/modules/main/content-risk-checks/content-risk-checks-pipeline.service.ts` + 5 steps |
+| Service orchestration (step-based) | `src/modules/main/content-risk-checks/content-risk-checks-pipeline.service.ts` + 6 steps |
 | Background processing | `src/modules/main/content-risk-checks/content-risk-checks.processor.ts` (BullMQ WorkerHost) |
 | Queue-based execution | BullMQ in `src/modules/queue/queue.module.ts` |
 | Each step isolated | `src/modules/main/content-risk-checks/pipeline/steps/*.step.ts`, one class per step |
@@ -141,7 +141,7 @@ curl -X POST http://localhost:3000/api/v1/content-risk-checks \
 |---|---|
 | Unified API, consistent envelope | `src/common/interceptors/response.interceptor.ts` + `src/common/filters/all-exceptions.filter.ts` |
 | API versioning | URI versioning in `src/bootstrap/http.bootstrap.ts`, all endpoints under `/api/v1/` |
-| Controlled LLM usage | `AiAnalysisStep` is one of 5 steps, doesn't control flow |
+| Controlled LLM usage | `AiAnalysisStep` is one of 6 steps, doesn't control flow |
 | LLM does NOT control flow | Pipeline order hardcoded in `ContentRiskChecksPipelineService.run` |
 | Outputs validated | `AiAnalysisOutputSchema` (Zod) in `domain/content-risk-checks/schemas/ai-output.schema.ts` with retry-on-fail |
 | Prompts versioned | `Prompt` model, `promptVersionId` snapshotted at create |
@@ -150,6 +150,7 @@ curl -X POST http://localhost:3000/api/v1/content-risk-checks \
 | API keys (usage only) | `OPENROUTER_API_KEY` via ConfigService, redacted in Pino logs |
 | Rate limiting | `@nestjs/throttler` per-endpoint via `@Throttle` decorators |
 | Input validation | `class-validator` on DTOs + Zod on LLM output |
+| Few-shot context injection | Stage 5 (Prompts 22–24): `RetrieveAiContextStep` + `AiAnalysisMemory` (pgvector) — backend-controlled retrieval, see [AI Memory](#ai-memory-few-shot-examples) |
 
 ## AI Memory (Few-Shot Examples)
 
@@ -199,11 +200,15 @@ Known limitations:
 ## Architecture Decisions
 
 - **Ports + adapters for repositories:** allows mocking in tests, isolates Prisma to the infrastructure layer (enforced by ESLint).
-- **Pipeline-as-service-of-steps:** each step is `@Injectable`, the runner composes them; LLM is one step out of 5.
+- **Pipeline-as-service-of-steps:** each step is `@Injectable`, the runner composes them; LLM is one step out of 6.
 - **Prompt versioning via DB:** prompts are stored with a version, activation flips `isActive`, and the chosen `promptVersionId` is snapshotted at check creation.
 - **TraceId via AsyncLocalStorage:** propagates HTTP middleware → service → queue payload → worker. The worker re-enters `TraceContext.run(payload.traceId, ...)`.
 - **Three-layer idempotency:** service-level fast-path → DB unique partial index → `DetectDuplicate` pipeline step → race-fallback copy on `P2002` at finalize.
 - **OpenRouter as LLM gateway:** one SDK (openai) for chat completions; switching models is a config change (`LLM_MODEL`), no code change.
+- **pgvector over `Float[]` for embedding similarity:** `AiAnalysisMemory.embedding` is `vector(1536)` with an HNSW cosine index (`CREATE INDEX … USING hnsw (embedding vector_cosine_ops)`), and similarity search runs in SQL via the `<=>` operator. The alternative was storing embeddings as `Float[]` (or `Json`) and computing cosine in Node. Trade-off:
+  - **pgvector wins on:** indexed nearest-neighbour search (sub-linear at scale), cosine operator (`<=>`) in SQL so retrieval stays in the repository layer, and constant memory (no need to load every row into Node per check).
+  - **`Float[]` would have won on:** zero infra dependency (works on stock Postgres), trivial local dev. The cost is O(N) full-scan + O(N·D) JS math per check — acceptable at a few-thousand rows but not beyond.
+  - **Why pgvector here:** memory grows monotonically with traffic and replays, and we want retrieval latency bounded by an index, not by row count. The cost is one Postgres extension (`CREATE EXTENSION IF NOT EXISTS vector` in migration `20260505100000_enable_pgvector`) and a Postgres image that ships pgvector. The current `docker-compose.yml` uses stock `postgres:15`, so for that image to apply migrations it must either be swapped for `pgvector/pgvector:pg15` (or similar) or have the extension installed in the running container.
 
 ## Known Limitations (MVP)
 
