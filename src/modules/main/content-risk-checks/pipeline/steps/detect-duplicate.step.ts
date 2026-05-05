@@ -25,9 +25,10 @@ interface DetectDuplicateOutput {
 }
 
 @Injectable()
-export class DetectDuplicateStep
-  implements PipelineStep<DetectDuplicateInput, DetectDuplicateOutput>
-{
+export class DetectDuplicateStep implements PipelineStep<
+  DetectDuplicateInput,
+  DetectDuplicateOutput
+> {
   readonly name = ContentRiskStepName.DETECT_DUPLICATE;
 
   constructor(

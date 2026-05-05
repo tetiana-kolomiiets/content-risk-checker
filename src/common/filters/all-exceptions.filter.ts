@@ -8,6 +8,7 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { ThrottlerException } from '@nestjs/throttler';
 import { Response } from 'express';
 import { Logger } from 'nestjs-pino';
 import { PipelineFailedError } from '../../modules/main/content-risk-checks/pipeline/contracts';
@@ -21,13 +22,7 @@ interface MappedError {
   details?: unknown;
 }
 
-const isThrottlerException = (exception: unknown): exception is HttpException =>
-  exception instanceof HttpException &&
-  exception.constructor.name === 'ThrottlerException';
-
-const extractValidationDetails = (
-  exception: BadRequestException,
-): unknown => {
+const extractValidationDetails = (exception: BadRequestException): unknown => {
   const response = exception.getResponse();
   if (response && typeof response === 'object') {
     const message = (response as { message?: unknown }).message;
@@ -37,6 +32,18 @@ const extractValidationDetails = (
     return response;
   }
   return undefined;
+};
+
+const isPrismaKnownRequestError = (
+  exception: unknown,
+): exception is { code: string; clientVersion: string; message: string } => {
+  if (!exception || typeof exception !== 'object') return false;
+  const e = exception as Record<string, unknown>;
+  return (
+    typeof e.code === 'string' &&
+    e.code.startsWith('P') &&
+    typeof e.clientVersion === 'string'
+  );
 };
 
 @Catch()
@@ -116,11 +123,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
       };
     }
 
-    if (isThrottlerException(exception)) {
+    if (exception instanceof ThrottlerException) {
       return {
-        status: exception.getStatus(),
+        status: HttpStatus.TOO_MANY_REQUESTS,
         code: 'RATE_LIMITED',
-        message: exception.message,
+        message: 'Too many requests, please try again later',
       };
     }
 
@@ -146,6 +153,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
         status: exception.getStatus(),
         code: 'HTTP_ERROR',
         message: typeof message === 'string' ? message : exception.message,
+      };
+    }
+
+    if (isPrismaKnownRequestError(exception)) {
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        code: 'INTERNAL',
+        message: 'Database error',
       };
     }
 

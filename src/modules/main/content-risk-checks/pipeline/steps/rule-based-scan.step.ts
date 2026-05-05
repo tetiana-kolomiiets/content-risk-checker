@@ -132,9 +132,10 @@ interface RuleBasedOutput {
 }
 
 @Injectable()
-export class RuleBasedScanStep
-  implements PipelineStep<RuleBasedInput, RuleBasedOutput>
-{
+export class RuleBasedScanStep implements PipelineStep<
+  RuleBasedInput,
+  RuleBasedOutput
+> {
   readonly name = ContentRiskStepName.RUN_RULE_BASED_CHECKS;
 
   async execute(

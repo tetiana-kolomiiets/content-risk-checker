@@ -47,9 +47,10 @@ const LEVEL_RANK: Record<ContentRiskLevel, number> = {
 };
 
 @Injectable()
-export class AggregateResultStep
-  implements PipelineStep<AggregateInput, AggregatedAnalysisResult>
-{
+export class AggregateResultStep implements PipelineStep<
+  AggregateInput,
+  AggregatedAnalysisResult
+> {
   readonly name = ContentRiskStepName.AGGREGATE_RESULT;
 
   async execute(
@@ -74,10 +75,7 @@ export class AggregateResultStep
           : thresholdLevel;
 
       const categories = [
-        ...new Set([
-          ...input.aiResult.categories,
-          ...input.ruleResult.flags,
-        ]),
+        ...new Set([...input.aiResult.categories, ...input.ruleResult.flags]),
       ];
 
       const flaggedFragments: FlaggedFragment[] = [

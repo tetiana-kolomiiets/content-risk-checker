@@ -13,9 +13,10 @@ interface NormalizeOutput {
 }
 
 @Injectable()
-export class NormalizeTextStep
-  implements PipelineStep<NormalizeInput, NormalizeOutput>
-{
+export class NormalizeTextStep implements PipelineStep<
+  NormalizeInput,
+  NormalizeOutput
+> {
   readonly name = ContentRiskStepName.NORMALIZE_TEXT;
 
   async execute(

@@ -138,10 +138,7 @@ export class PrismaContentRiskChecksRepository implements ContentRiskChecksRepos
     }
   }
 
-  async findActiveByContentHash(
-    contentHash: string,
-    promptVersionId: string,
-  ) {
+  async findActiveByContentHash(contentHash: string, promptVersionId: string) {
     try {
       const row = await this.prismaService.contentRiskCheck.findFirst({
         where: {

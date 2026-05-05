@@ -16,6 +16,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { TraceContext } from '../../../common/tracing/trace-context';
 import { ContentRiskChecksService } from './content-risk-checks.service';
 import { ContentRiskCheckDto } from './dto/content-risk-check.dto';
@@ -29,6 +30,7 @@ import { GetContentRiskChecksOutputDto } from './dto/get-content-risk-checks-out
 export class ContentRiskChecksController {
   constructor(private readonly service: ContentRiskChecksService) {}
 
+  @Throttle({ default: { ttl: 60_000, limit: 60 } })
   @Get(':id')
   @ApiOperation({ summary: 'Get content risk check by id' })
   @ApiOkResponse({ type: ContentRiskCheckDto })
@@ -56,6 +58,7 @@ export class ContentRiskChecksController {
     return this.service.getStepLogs(id);
   }
 
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @Post()
   @HttpCode(202)
   @ApiOperation({ summary: 'Submit text for risk analysis' })
@@ -71,6 +74,7 @@ export class ContentRiskChecksController {
     });
   }
 
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post(':id/replay')
   @HttpCode(202)
   @ApiOperation({

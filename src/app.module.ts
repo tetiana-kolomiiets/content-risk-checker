@@ -1,5 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import pino from 'pino';
 import { AppController } from './app.controller';
@@ -14,6 +16,11 @@ import { ContentRiskChecksModule } from './modules/main/content-risk-checks/cont
 import { HealthModule } from './modules/main/health/health.module';
 import { PromptsModule } from './modules/main/prompts/prompts.module';
 
+// Known limitations (acceptable for MVP, documented in README):
+// - Rate limiting is in-memory (per-process); multi-instance deployments may exceed effective limit
+// - Prompt cache is per-process with 60s TTL; activation may take up to 60s to propagate across workers
+// - Worker process can be separated (npm run start:worker) but default dev mode runs HTTP+worker in one process
+// - LLM gateway is OpenRouter; switching to direct provider requires only swapping LlmClient adapter
 @Module({
   imports: [
     ConfigModule,
@@ -44,6 +51,15 @@ import { PromptsModule } from './modules/main/prompts/prompts.module';
         },
       }),
     }),
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<EnvConfig, true>) => [
+        {
+          ttl: config.get('THROTTLE_TTL_MS', { infer: true }) ?? 60_000,
+          limit: config.get('THROTTLE_LIMIT', { infer: true }) ?? 60,
+        },
+      ],
+    }),
     PrismaModule,
     LlmModule,
     HealthModule,
@@ -51,7 +67,7 @@ import { PromptsModule } from './modules/main/prompts/prompts.module';
     PromptsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
