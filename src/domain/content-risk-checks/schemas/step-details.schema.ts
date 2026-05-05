@@ -20,6 +20,16 @@ export const StepDetailsSchema = z.discriminatedUnion('stepName', [
     score: z.number().min(0).max(1),
   }),
   z.object({
+    stepName: z.literal(ContentRiskStepName.RETRIEVE_AI_CONTEXT),
+    enabled: z.boolean(),
+    examplesFound: z.number().int().min(0),
+    avgSimilarity: z.number().min(0).max(1).optional(),
+    topSimilarity: z.number().min(0).max(1).optional(),
+    embeddingErrorCode: z.string().optional(),
+    embeddingErrorMessage: z.string().optional(),
+    repoErrorMessage: z.string().optional(),
+  }),
+  z.object({
     stepName: z.literal(ContentRiskStepName.RUN_AI_ANALYSIS),
     promptVersion: z.number().int().positive(),
     tokensIn: z.number().int().min(0),

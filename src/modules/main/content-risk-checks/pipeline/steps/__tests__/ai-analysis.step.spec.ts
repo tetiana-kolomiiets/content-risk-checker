@@ -57,6 +57,7 @@ const ctx: StepContext = {
 const input = {
   normalizedText: 'hello world',
   ruleFlags: [ContentRiskCategory.TOXICITY],
+  examples: [],
 };
 
 describe('AiAnalysisStep', () => {
@@ -224,7 +225,10 @@ describe('AiAnalysisStep', () => {
       buildLlmResponse(JSON.stringify(validAiOutput)),
     );
 
-    await step.execute({ normalizedText: 'sample text', ruleFlags: [] }, ctx);
+    await step.execute(
+      { normalizedText: 'sample text', ruleFlags: [], examples: [] },
+      ctx,
+    );
 
     const callArgs = llm.complete.mock.calls[0][0];
     expect(callArgs.user).toContain('Text: sample text');
@@ -244,6 +248,7 @@ describe('AiAnalysisStep', () => {
       {
         normalizedText: 'x',
         ruleFlags: [ContentRiskCategory.HATE, ContentRiskCategory.THREAT],
+        examples: [],
       },
       ctx,
     );

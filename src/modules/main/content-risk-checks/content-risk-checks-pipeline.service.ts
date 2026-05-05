@@ -89,6 +89,7 @@ export class ContentRiskChecksPipelineService {
         {
           normalizedText: normalizeOutput.normalizedText,
           ruleFlags: ruleOutput.flags,
+          examples: [],
         },
         ctx,
         attempt,

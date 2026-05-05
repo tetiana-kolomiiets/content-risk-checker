@@ -6,6 +6,7 @@ import {
   AiAnalysisOutput,
   AiAnalysisOutputSchema,
 } from '../../../../../domain/content-risk-checks/schemas/ai-output.schema';
+import { AiFewShotExample } from '../../../../../domain/content-risk-checks/types/ai-few-shot-example.type';
 import {
   LLM_CLIENT,
   LlmClient,
@@ -22,6 +23,7 @@ import { StepResult } from '../contracts/step-result.type';
 interface AiAnalysisInput {
   normalizedText: string;
   ruleFlags: ContentRiskCategory[];
+  examples: AiFewShotExample[];
 }
 
 @Injectable()
@@ -72,7 +74,23 @@ export class AiAnalysisStep implements PipelineStep<
       );
     }
 
+    const examplesSection =
+      input.examples.length === 0
+        ? ''
+        : 'Past similar decisions for reference:\n\n' +
+          input.examples
+            .map(
+              (e, i) =>
+                `Example ${i + 1} (similarity ${(e.similarity * 100).toFixed(0)}%):\n` +
+                `- Text: "${e.contentSnippet}"\n` +
+                `- Decision: ${e.finalRiskLevel}; categories: ${e.categories.join(', ')}\n` +
+                `- Reasoning: ${e.rationale}`,
+            )
+            .join('\n\n') +
+          '\n\n';
+
     const userText = userTemplate
+      .replace('{examples_section}', examplesSection)
       .replace('{text}', input.normalizedText)
       .replace('{rule_flags}', input.ruleFlags.join(', ') || 'none');
 
