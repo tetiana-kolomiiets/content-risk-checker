@@ -1,98 +1,143 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# AI Content Risk Checker
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## Overview
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Backend service that analyzes text for content risk (toxicity, spam, hate speech, etc.)
+using a deterministic 5-step pipeline. AI signal source is Anthropic Claude
+accessed through **OpenRouter** as the LLM gateway.
 
-## Description
+## Architecture
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
-
-```bash
-$ yarn install
+```
+HTTP → Controller → Service → Queue → Worker → PipelineRunner → 5 steps → DB
 ```
 
-## Compile and run the project
+The five pipeline steps run in fixed order: `NORMALIZE_TEXT` →
+`DETECT_DUPLICATE` → `RUN_RULE_BASED_CHECKS` → `RUN_AI_ANALYSIS` →
+`AGGREGATE_RESULT`. Each step is an isolated `@Injectable` returning a
+discriminated `StepResult<O>`; the runner is the only component that knows the
+step order, persists `ContentRiskStepLog` rows, and decides when to short-circuit
+(duplicate detection) or finalize.
+
+## Quickstart
+
+1. `docker-compose up -d`
+2. `npm install`
+3. `cp .env.example .env` and set `OPENROUTER_API_KEY` (get one at https://openrouter.ai/keys)
+4. `npm run prisma:migrate`
+5. `npm run prisma:seed`
+6. `npm run start:dev`
+7. Open http://localhost:3000/api for Swagger
+
+## Process modes
+
+- `npm run start:all` — HTTP + worker in one process (default for dev)
+- `npm run start:api` — HTTP only
+- `npm run start:worker` — worker only
+
+## API Reference
+
+All endpoints are prefixed with `/api/v1` (URI versioning) and return a wrapped
+envelope `{ data, error, meta }`.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/v1/content-risk-checks` | Submit text for risk analysis (returns 202) |
+| `GET`  | `/api/v1/content-risk-checks/:id` | Read a check + its analysis result |
+| `GET`  | `/api/v1/content-risk-checks` | List checks (optional `?status=…`) |
+| `GET`  | `/api/v1/content-risk-checks/:id/logs` | Read step execution logs |
+| `POST` | `/api/v1/content-risk-checks/:id/replay` | Re-run with the current active prompt |
+| `POST` | `/api/v1/prompts/:id/activate` | Activate a prompt version |
+| `GET`  | `/api/v1/health` | Liveness/readiness |
+
+Example — submit a check:
 
 ```bash
-# development
-$ yarn run start
-
-# watch mode
-$ yarn run start:dev
-
-# production mode
-$ yarn run start:prod
+curl -X POST http://localhost:3000/api/v1/content-risk-checks \
+  -H "content-type: application/json" \
+  -d '{"text":"hello world"}'
 ```
 
-## Run tests
+```json
+{
+  "data": {
+    "id": "5e6b…",
+    "status": "PENDING",
+    "rawText": "hello world",
+    "contentHash": "b94d…",
+    "retryCount": 0,
+    "maxRetries": 3
+  },
+  "error": null,
+  "meta": {
+    "traceId": "a4f1…",
+    "apiVersion": "v1",
+    "timestamp": "2026-05-05T12:00:00.000Z"
+  }
+}
+```
+
+## PDP Coverage Map
+
+### Phase 2: Backend Workflows
+
+| PDP requirement | File / feature |
+|---|---|
+| Service orchestration (step-based) | `src/modules/main/content-risk-checks/content-risk-checks-pipeline.service.ts` + 5 steps |
+| Background processing | `src/modules/main/content-risk-checks/content-risk-checks.processor.ts` (BullMQ WorkerHost) |
+| Queue-based execution | BullMQ in `src/modules/queue/queue.module.ts` |
+| Each step isolated | `src/modules/main/content-risk-checks/pipeline/steps/*.step.ts`, one class per step |
+| Failures handled per step | `StepResult<O>` discriminated union in `pipeline/contracts/step-result.type.ts` |
+| Logs describe full execution path | `ContentRiskStepLog` model + Pino with traceId |
+| Long-running jobs | BullMQ with 3 attempts, exponential backoff (`queue.module.ts`) |
+| Idempotent jobs | sha256 contentHash + DB unique partial index + DetectDuplicate step |
+| Jobs can be replayed | `POST /:id/replay` in `content-risk-checks.controller.ts` + `replayOfCheckId` |
+
+### Phase 3: AI Integration
+
+| PDP requirement | File / feature |
+|---|---|
+| Unified API, consistent envelope | `src/common/interceptors/response.interceptor.ts` + `src/common/filters/all-exceptions.filter.ts` |
+| API versioning | URI versioning in `src/bootstrap/http.bootstrap.ts`, all endpoints under `/api/v1/` |
+| Controlled LLM usage | `AiAnalysisStep` is one of 5 steps, doesn't control flow |
+| LLM does NOT control flow | Pipeline order hardcoded in `ContentRiskChecksPipelineService.run` |
+| Outputs validated | `AiAnalysisOutputSchema` (Zod) in `domain/content-risk-checks/schemas/ai-output.schema.ts` with retry-on-fail |
+| Prompts versioned | `Prompt` model, `promptVersionId` snapshotted at create |
+| Structured logging | `nestjs-pino` with `traceId` injected via AsyncLocalStorage |
+| Request tracing | `TraceContext` propagates traceId from HTTP middleware → service → queue payload → worker |
+| API keys (usage only) | `OPENROUTER_API_KEY` via ConfigService, redacted in Pino logs |
+| Rate limiting | `@nestjs/throttler` per-endpoint via `@Throttle` decorators |
+| Input validation | `class-validator` on DTOs + Zod on LLM output |
+
+## Architecture Decisions
+
+- **Ports + adapters for repositories:** allows mocking in tests, isolates Prisma to the infrastructure layer (enforced by ESLint).
+- **Pipeline-as-service-of-steps:** each step is `@Injectable`, the runner composes them; LLM is one step out of 5.
+- **Prompt versioning via DB:** prompts are stored with a version, activation flips `isActive`, and the chosen `promptVersionId` is snapshotted at check creation.
+- **TraceId via AsyncLocalStorage:** propagates HTTP middleware → service → queue payload → worker. The worker re-enters `TraceContext.run(payload.traceId, ...)`.
+- **Three-layer idempotency:** service-level fast-path → DB unique partial index → `DetectDuplicate` pipeline step → race-fallback copy on `P2002` at finalize.
+- **OpenRouter as LLM gateway:** one SDK (openai) for chat completions; switching models is a config change (`LLM_MODEL`), no code change.
+
+## Known Limitations (MVP)
+
+- Rate limiting is in-memory; multi-instance deployments need a Redis-based throttler.
+- Prompt cache TTL is 60 s; activation propagation lag of up to 60 s across workers.
+- Worker can run as a separate process (`npm run start:worker`), but the default dev mode is combined.
+- LLM gateway is OpenRouter; switching to direct Anthropic only requires swapping the `LlmClient` adapter — the interface is stable.
+
+## Testing
+
+- `npm run test` — unit tests (`*.spec.ts` under `src/`)
+- `npm run test:e2e` — end-to-end tests against a real Postgres + Redis
+
+The e2e suite expects the test infra to be up:
 
 ```bash
-# unit tests
-$ yarn run test
-
-# e2e tests
-$ yarn run test:e2e
-
-# test coverage
-$ yarn run test:cov
+docker-compose -f docker-compose.test.yml up -d
+npm run test:e2e
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ yarn install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+The e2e config sets `DATABASE_URL` to the test Postgres on port `5434` and Redis
+on port `6380`, then runs `prisma db push` to apply the schema before the suite
+starts. The LLM client is overridden via Nest's `overrideProvider(LLM_CLIENT)`,
+so no real OpenRouter calls are made.

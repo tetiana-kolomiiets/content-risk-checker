@@ -15,6 +15,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "prisma db seed",
     "test": "jest",
+    "test:e2e": "jest --config test/jest-e2e.json --runInBand",
     "lint": "eslint \"src/**/*.ts\" --fix"
   },
   "prisma": {
