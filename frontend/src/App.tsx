@@ -1,23 +1,18 @@
-import { FiActivity } from 'react-icons/fi';
+import { Route, Routes } from 'react-router-dom';
+import { Layout } from './components/layout/Layout';
+import { CheckPage } from './routes/CheckPage';
+import { HomePage } from './routes/HomePage';
+import { NotFoundPage } from './routes/NotFoundPage';
 
 function App() {
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="max-w-md rounded-lg border border-border bg-surface p-8">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-accent text-white">
-            <FiActivity className="h-5 w-5" />
-          </div>
-          <h1 className="text-2xl font-medium">Content risk checker</h1>
-        </div>
-        <p className="text-text-secondary">
-          Frontend scaffolded. API base:{' '}
-          <code className="font-mono text-sm">
-            {import.meta.env.VITE_API_BASE_URL}
-          </code>
-        </p>
-      </div>
-    </div>
+    <Layout>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/checks/:id" element={<CheckPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </Layout>
   );
 }
 
