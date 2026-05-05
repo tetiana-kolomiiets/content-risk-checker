@@ -24,6 +24,7 @@ export const StepDetailsSchema = z.discriminatedUnion('stepName', [
     promptVersion: z.number().int().positive(),
     tokensIn: z.number().int().min(0),
     tokensOut: z.number().int().min(0),
+    attempts: z.number().int().min(1).optional(),
   }),
   z.object({
     stepName: z.literal(ContentRiskStepName.AGGREGATE_RESULT),

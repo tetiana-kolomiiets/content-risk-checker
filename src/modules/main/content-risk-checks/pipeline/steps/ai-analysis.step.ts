@@ -1,18 +1,23 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
 import { ContentRiskCategory } from '../../../../../domain/content-risk-checks/enums/content-risk-category.enum';
-import { ContentRiskLevel } from '../../../../../domain/content-risk-checks/enums/content-risk-level.enum';
 import { ContentRiskStepName } from '../../../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
-import { AiAnalysisOutput } from '../../../../../domain/content-risk-checks/schemas/ai-output.schema';
+import {
+  AiAnalysisOutput,
+  AiAnalysisOutputSchema,
+} from '../../../../../domain/content-risk-checks/schemas/ai-output.schema';
+import {
+  LLM_CLIENT,
+  LlmClient,
+  LlmCompletionOutput,
+} from '../../../../../infrastructure/llm/llm.types';
+import {
+  PROMPTS_REPOSITORY,
+  PromptsRepository,
+} from '../../../../../infrastructure/postgres/ports/prompts.repository';
 import { PipelineStep } from '../contracts/pipeline-step.interface';
 import { StepContext } from '../contracts/step-context.type';
 import { StepResult } from '../contracts/step-result.type';
-
-// =====================================================================
-// PLACEHOLDER IMPLEMENTATION
-// TODO(Stage 3 / Prompt 17): replace with real OpenRouter call.
-// Returns deterministic output based on rule flags so the rest of the
-// pipeline can be exercised end-to-end without network calls.
-// =====================================================================
 
 interface AiAnalysisInput {
   normalizedText: string;
@@ -20,55 +25,145 @@ interface AiAnalysisInput {
 }
 
 @Injectable()
-export class AiAnalysisStep
-  implements PipelineStep<AiAnalysisInput, AiAnalysisOutput>
-{
+export class AiAnalysisStep implements PipelineStep<
+  AiAnalysisInput,
+  AiAnalysisOutput
+> {
   readonly name = ContentRiskStepName.RUN_AI_ANALYSIS;
+
+  constructor(
+    @Inject(LLM_CLIENT) private readonly llm: LlmClient,
+    @Inject(PROMPTS_REPOSITORY) private readonly promptsRepo: PromptsRepository,
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(AiAnalysisStep.name);
+  }
 
   async execute(
     input: AiAnalysisInput,
-    _ctx: StepContext,
+    ctx: StepContext,
   ): Promise<StepResult<AiAnalysisOutput>> {
-    const severeCategories = [
-      ContentRiskCategory.THREAT,
-      ContentRiskCategory.SELF_HARM,
-      ContentRiskCategory.HATE,
-    ];
-    const hasSevere = input.ruleFlags.some((f) =>
-      severeCategories.includes(f),
-    );
-    const hasAny = input.ruleFlags.length > 0;
-
-    let finalLevel: ContentRiskLevel;
-    let score: number;
-    if (hasSevere) {
-      finalLevel = ContentRiskLevel.HIGH;
-      score = 0.85;
-    } else if (hasAny) {
-      finalLevel = ContentRiskLevel.MEDIUM;
-      score = 0.5;
-    } else {
-      finalLevel = ContentRiskLevel.LOW;
-      score = 0.1;
+    const promptOrErr = await this.promptsRepo.getById(ctx.promptVersionId);
+    if (promptOrErr instanceof Error) {
+      return this.fail('PROMPT_LOOKUP_FAILED', promptOrErr.message, 0);
+    }
+    if (!promptOrErr) {
+      return this.fail(
+        'PROMPT_NOT_FOUND',
+        `Prompt ${ctx.promptVersionId} not found`,
+        0,
+      );
     }
 
-    const output: AiAnalysisOutput = {
-      finalLevel,
-      categories: input.ruleFlags,
-      score,
-      rationale:
-        'Placeholder AI response. Real OpenRouter integration pending.',
-      flaggedFragments: [],
-    };
+    let system: string;
+    let userTemplate: string;
+    try {
+      const parsed = JSON.parse(promptOrErr.template) as {
+        system: string;
+        userTemplate: string;
+      };
+      system = parsed.system;
+      userTemplate = parsed.userTemplate;
+    } catch (e) {
+      return this.fail(
+        'PROMPT_TEMPLATE_INVALID',
+        (e as Error).message,
+        promptOrErr.version,
+      );
+    }
 
+    const userText = userTemplate
+      .replace('{text}', input.normalizedText)
+      .replace('{rule_flags}', input.ruleFlags.join(', ') || 'none');
+
+    let lastError: string | null = null;
+    let totalTokensIn = 0;
+    let totalTokensOut = 0;
+
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const userMessage =
+        attempt === 1
+          ? userText
+          : `${userText}\n\nYour previous response failed validation: ${lastError}.\nReturn ONLY valid JSON matching the schema. No prose, no markdown fences.`;
+
+      let llmResp: LlmCompletionOutput;
+      try {
+        llmResp = await this.llm.complete({
+          system,
+          user: userMessage,
+          model: promptOrErr.model,
+          temperature: 0,
+        });
+      } catch (e) {
+        return this.fail(
+          'LLM_CALL_FAILED',
+          (e as Error).message,
+          promptOrErr.version,
+          totalTokensIn,
+          totalTokensOut,
+        );
+      }
+
+      totalTokensIn += llmResp.tokensIn;
+      totalTokensOut += llmResp.tokensOut;
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(llmResp.content);
+      } catch (e) {
+        lastError = `JSON.parse failed: ${(e as Error).message}`;
+        continue;
+      }
+
+      const zodResult = AiAnalysisOutputSchema.safeParse(parsed);
+      if (!zodResult.success) {
+        lastError = zodResult.error.issues
+          .map((i) => `${i.path.join('.')}: ${i.message}`)
+          .join('; ');
+        this.logger.warn(
+          { checkId: ctx.checkId, attempt, lastError },
+          'AI response failed schema validation',
+        );
+        continue;
+      }
+
+      return {
+        ok: true,
+        output: zodResult.data,
+        details: {
+          stepName: ContentRiskStepName.RUN_AI_ANALYSIS,
+          promptVersion: promptOrErr.version,
+          tokensIn: totalTokensIn,
+          tokensOut: totalTokensOut,
+          attempts: attempt,
+        },
+      };
+    }
+
+    return this.fail(
+      'AI_VALIDATION_FAILED',
+      `Failed schema validation after 2 attempts. Last error: ${lastError}`,
+      promptOrErr.version,
+      totalTokensIn,
+      totalTokensOut,
+    );
+  }
+
+  private fail(
+    code: string,
+    message: string,
+    promptVersion: number,
+    tokensIn = 0,
+    tokensOut = 0,
+  ): StepResult<AiAnalysisOutput> {
     return {
-      ok: true,
-      output,
+      ok: false,
+      error: { code, message },
       details: {
         stepName: ContentRiskStepName.RUN_AI_ANALYSIS,
-        promptVersion: 1,
-        tokensIn: 0,
-        tokensOut: 0,
+        promptVersion,
+        tokensIn,
+        tokensOut,
       },
     };
   }
