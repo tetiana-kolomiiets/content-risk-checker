@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FiPlus, FiSearch } from 'react-icons/fi';
+import { FiInbox, FiPlus, FiSearch } from 'react-icons/fi';
 import { Link, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
 import { api } from '@/lib/api';
@@ -119,7 +119,15 @@ export function Sidebar() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-2">
-        {filteredChecks.length === 0 ? (
+        {checks.length === 0 ? (
+          <div className="mt-10 flex flex-col items-center px-4 text-center">
+            <div className="mb-3 rounded-full border border-border-subtle p-3">
+              <FiInbox className="h-5 w-5 text-text-tertiary" aria-hidden="true" />
+            </div>
+            <p className="text-sm text-text-secondary">No checks yet</p>
+            <p className="mt-1 text-xs text-text-tertiary">Submit your first check to see it here.</p>
+          </div>
+        ) : filteredChecks.length === 0 ? (
           <p className="px-3 py-2 text-center text-xs text-text-tertiary">No checks match.</p>
         ) : (
           filteredChecks.map((check) => (

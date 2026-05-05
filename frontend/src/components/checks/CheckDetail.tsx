@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { FiAlertCircle, FiCopy, FiRotateCcw } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
@@ -8,9 +8,16 @@ import type { Check, CheckStatus, StepLog } from '@/lib/types';
 import { MetadataPanel } from './MetadataPanel';
 import { PipelineTimeline } from './PipelineTimeline';
 import { RiskHero } from './RiskHero';
+import { useToast } from '../ui/Toast';
 
-export function CheckDetail({ checkId }: { checkId: string }) {
+interface CheckDetailProps {
+  checkId: string;
+  onCheckLoaded?: (check: Check) => void;
+}
+
+export function CheckDetail({ checkId, onCheckLoaded }: CheckDetailProps) {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [check, setCheck] = useState<Check | null>(null);
   const [logs, setLogs] = useState<StepLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,6 +37,7 @@ export function CheckDetail({ checkId }: { checkId: string }) {
 
         setCheck(fetchedCheck);
         setLogs(fetchedLogs);
+        onCheckLoaded?.(fetchedCheck);
       })
       .catch(() => {
         if (!isCancelled) {
@@ -45,9 +53,9 @@ export function CheckDetail({ checkId }: { checkId: string }) {
     return () => {
       isCancelled = true;
     };
-  }, [checkId]);
+  }, [checkId, onCheckLoaded]);
 
-  async function onReplay() {
+  const onReplay = useCallback(async () => {
     if (!check || isReplaying) {
       return;
     }
@@ -57,9 +65,39 @@ export function CheckDetail({ checkId }: { checkId: string }) {
       const newCheck = await api.replayCheck(check.id);
       navigate(`/checks/${newCheck.id}`);
     } catch {
+      toast({ variant: 'error', message: 'Unable to replay this check right now.' });
       setIsReplaying(false);
     }
-  }
+  }, [check, isReplaying, navigate, toast]);
+
+  useEffect(() => {
+    const canReplay = check?.status === 'COMPLETED' || check?.status === 'FAILED';
+    if (!canReplay) {
+      return;
+    }
+
+    function handleReplayShortcut(event: KeyboardEvent) {
+      const target = event.target;
+      const isEditableTarget =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        (target instanceof HTMLElement && target.isContentEditable);
+      if (isEditableTarget) {
+        return;
+      }
+
+      const isReplayShortcut = event.key.toLowerCase() === 'r' && !event.metaKey && !event.ctrlKey && !event.altKey;
+      if (isReplayShortcut) {
+        event.preventDefault();
+        void onReplay();
+      }
+    }
+
+    window.addEventListener('keydown', handleReplayShortcut);
+    return () => {
+      window.removeEventListener('keydown', handleReplayShortcut);
+    };
+  }, [check?.status, onReplay]);
 
   if (isLoading) {
     return <div className="text-text-tertiary">Loading...</div>;

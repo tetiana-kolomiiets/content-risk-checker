@@ -2,37 +2,63 @@ import type { ApiEnvelope, Check, HealthStatus, SourceType, StepLog } from './ty
 import { ApiError } from './types';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api/v1';
+const RATE_LIMIT_COUNTDOWN_SECONDS = 12;
+
+type ApiErrorNotifier = (error: ApiError | Error) => void;
+
+let apiErrorNotifier: ApiErrorNotifier | null = null;
+
+export function setApiErrorNotifier(notifier: ApiErrorNotifier | null) {
+  apiErrorNotifier = notifier;
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(init?.headers ?? {}),
+      },
+    });
+  } catch {
+    const networkError = new Error('Network error');
+    apiErrorNotifier?.(networkError);
+    throw networkError;
+  }
 
   let body: ApiEnvelope<T>;
   try {
     body = (await res.json()) as ApiEnvelope<T>;
   } catch {
-    throw new ApiError('INVALID_RESPONSE', `Non-JSON response (${res.status})`, res.status, '');
+    const responseError = new ApiError('INVALID_RESPONSE', `Non-JSON response (${res.status})`, res.status, '');
+    apiErrorNotifier?.(responseError);
+    throw responseError;
   }
 
   if (!res.ok || body.error) {
-    throw new ApiError(
+    const apiError = new ApiError(
       body.error?.code ?? 'UNKNOWN',
       body.error?.message ?? `HTTP ${res.status}`,
       res.status,
       body.meta?.traceId ?? '',
     );
+    apiErrorNotifier?.(apiError);
+    throw apiError;
   }
 
   if (body.data === null) {
-    throw new ApiError('EMPTY_RESPONSE', 'API returned no data', res.status, body.meta?.traceId ?? '');
+    const emptyResponseError = new ApiError('EMPTY_RESPONSE', 'API returned no data', res.status, body.meta?.traceId ?? '');
+    apiErrorNotifier?.(emptyResponseError);
+    throw emptyResponseError;
   }
 
   return body.data;
+}
+
+export function getRateLimitCountdownSteps(): number[] {
+  return Array.from({ length: RATE_LIMIT_COUNTDOWN_SECONDS - 1 }, (_, index) => RATE_LIMIT_COUNTDOWN_SECONDS - 1 - index);
 }
 
 export const api = {

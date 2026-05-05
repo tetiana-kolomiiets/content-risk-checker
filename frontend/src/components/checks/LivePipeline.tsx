@@ -107,7 +107,7 @@ export function LivePipeline({ checkId, onComplete }: LivePipelineProps) {
         Elapsed: <span className="font-mono text-sm">{(elapsedMs / 1000).toFixed(1)}s</span>
       </p>
 
-      <div className="space-y-1">
+      <div className="space-y-1" role="status" aria-live="polite" aria-atomic="false">
         {PIPELINE_STEPS.map((step) => {
           const log = logsByStepName.get(step.name);
           const status = getStepStatus(log, check?.currentStep ?? null, step.name);

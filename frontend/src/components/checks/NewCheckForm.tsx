@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { FiLoader, FiSend } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
@@ -24,8 +24,13 @@ const QUICK_FILLS = [
   },
 ];
 
-export function NewCheckForm() {
+interface NewCheckFormProps {
+  hasExistingChecks: boolean;
+}
+
+export function NewCheckForm({ hasExistingChecks }: NewCheckFormProps) {
   const navigate = useNavigate();
+  const formRef = useRef<HTMLFormElement | null>(null);
   const [text, setText] = useState('');
   const [submittingCheckId, setSubmittingCheckId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +38,19 @@ export function NewCheckForm() {
 
   const hasInputText = text.trim().length > 0;
   const canSubmitForm = hasInputText && !isSubmitting;
+  const quickExamplesTitle = hasExistingChecks
+    ? 'Try a quick example:'
+    : 'Try one of the quick examples below to see how it works.';
+
+  function handleTextareaKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    const isSubmitShortcut = (event.metaKey || event.ctrlKey) && event.key === 'Enter';
+    if (!isSubmitShortcut) {
+      return;
+    }
+
+    event.preventDefault();
+    formRef.current?.requestSubmit();
+  }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -73,10 +91,15 @@ export function NewCheckForm() {
         categories.
       </p>
 
-      <form onSubmit={onSubmit}>
+      <form ref={formRef} onSubmit={onSubmit}>
+        <label htmlFor="new-check-text" className="mb-2 block text-sm text-text-secondary">
+          Text to analyze
+        </label>
         <textarea
+          id="new-check-text"
           value={text}
           onChange={(event) => setText(event.target.value)}
+          onKeyDown={handleTextareaKeyDown}
           placeholder="Paste text here..."
           className="h-48 w-full resize-none rounded-md border border-border p-4 text-base focus:border-accent focus:shadow-focus focus:outline-none disabled:bg-border-subtle/40"
           maxLength={10000}
@@ -85,10 +108,11 @@ export function NewCheckForm() {
 
         <div className="mt-2 flex items-center justify-between text-sm text-text-tertiary">
           <span>{text.length} / 10000 characters</span>
+          <span>Cmd+Enter to submit</span>
         </div>
 
         <div className="mt-4">
-          <p className="mb-2 text-sm text-text-secondary">Try a quick example:</p>
+          <p className="mb-2 text-sm text-text-secondary">{quickExamplesTitle}</p>
           <div className="flex flex-wrap gap-2">
             {QUICK_FILLS.map((quickFill) => (
               <button
