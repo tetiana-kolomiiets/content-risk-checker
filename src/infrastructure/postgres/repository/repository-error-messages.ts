@@ -16,6 +16,8 @@ export const FAILED_TO_GET_CONTENT_RISK_ANALYSIS_RESULT_BY_CHECK_ID =
 
 export const FAILED_TO_CREATE_CONTENT_RISK_STEP_LOG =
   'Failed to create content risk step log';
+export const FAILED_TO_UPDATE_CONTENT_RISK_STEP_LOG =
+  'Failed to update content risk step log';
 export const FAILED_TO_GET_CONTENT_RISK_STEP_LOGS_BY_CHECK_ID =
   'Failed to get content risk step logs by check id';
 

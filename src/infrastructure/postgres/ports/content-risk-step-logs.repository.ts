@@ -20,5 +20,17 @@ export interface ContentRiskStepLogsRepository {
     durationMs?: number | null;
   }): Promise<ContentRiskStepLog | Error>;
 
+  update(
+    id: string,
+    data: {
+      status?: StepExecutionStatus;
+      message?: string | null;
+      errorMessage?: string | null;
+      details?: unknown;
+      finishedAt?: Date | null;
+      durationMs?: number | null;
+    },
+  ): Promise<ContentRiskStepLog | Error>;
+
   getByCheckId(checkId: string): Promise<ContentRiskStepLog[] | Error>;
 }

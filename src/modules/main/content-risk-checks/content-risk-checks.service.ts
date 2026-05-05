@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   Inject,
   Injectable,
@@ -5,6 +6,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { ContentRiskCheckStatus } from '../../../domain/content-risk-checks/enums/content-risk-check-status.enum';
 import {
   CONTENT_RISK_ANALYSIS_RESULTS_REPOSITORY,
   ContentRiskAnalysisResultsRepository,
@@ -17,6 +19,7 @@ import {
   CONTENT_RISK_STEP_LOGS_REPOSITORY,
   ContentRiskStepLogsRepository,
 } from '../../../infrastructure/postgres/ports/content-risk-step-logs.repository';
+import { TraceContext } from '../../../common/tracing/trace-context';
 import { ContentRiskChecksPipelineService } from './content-risk-checks-pipeline.service';
 import { ContentRiskCheckDto } from './dto/content-risk-check.dto';
 import { ContentRiskStepLogDto } from './dto/content-risk-step-log.dto';
@@ -59,6 +62,22 @@ export class ContentRiskChecksService {
     const checks = this.unwrap(await this.checksRepo.getMany(query.status));
 
     return { items: checks.map((check) => contentRiskCheckToDto(check)) };
+  }
+
+  // TODO: REMOVE after Prompt 14
+  async _debugRunPipeline(checkId: string): Promise<void> {
+    const traceId = TraceContext.get() ?? randomUUID();
+    try {
+      await this.contentRiskChecksPipelineService.run(checkId, traceId);
+    } catch (err) {
+      await this.checksRepo.update({
+        id: checkId,
+        status: ContentRiskCheckStatus.FAILED,
+        finishedAt: new Date(),
+        errorMessage: (err as Error).message,
+      });
+      throw err;
+    }
   }
 
   async getStepLogs(checkId: string): Promise<ContentRiskStepLogDto[]> {

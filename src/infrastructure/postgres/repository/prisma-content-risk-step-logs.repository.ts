@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   FAILED_TO_CREATE_CONTENT_RISK_STEP_LOG,
   FAILED_TO_GET_CONTENT_RISK_STEP_LOGS_BY_CHECK_ID,
+  FAILED_TO_UPDATE_CONTENT_RISK_STEP_LOG,
 } from './repository-error-messages';
 import { toDomainContentRiskStepLog } from './mappers/to-domain-content-risk-step-log.mapper';
 
@@ -47,6 +48,36 @@ export class PrismaContentRiskStepLogsRepository implements ContentRiskStepLogsR
       return toDomainContentRiskStepLog(row);
     } catch {
       return new Error(FAILED_TO_CREATE_CONTENT_RISK_STEP_LOG);
+    }
+  }
+
+  async update(
+    id: string,
+    data: {
+      status?: StepExecutionStatus;
+      message?: string | null;
+      errorMessage?: string | null;
+      details?: unknown;
+      finishedAt?: Date | null;
+      durationMs?: number | null;
+    },
+  ) {
+    try {
+      const row = await this.prismaService.contentRiskStepLog.update({
+        where: { id },
+        data: {
+          status: data.status,
+          message: data.message,
+          errorMessage: data.errorMessage,
+          details: data.details as Prisma.InputJsonValue | undefined,
+          finishedAt: data.finishedAt,
+          durationMs: data.durationMs,
+        },
+      });
+
+      return toDomainContentRiskStepLog(row);
+    } catch {
+      return new Error(FAILED_TO_UPDATE_CONTENT_RISK_STEP_LOG);
     }
   }
 
