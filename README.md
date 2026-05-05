@@ -29,6 +29,48 @@ step order, persists `ContentRiskStepLog` rows, and decides when to short-circui
 6. `npm run start:dev`
 7. Open http://localhost:3000/api for Swagger
 
+## Development
+
+### Backend
+
+```bash
+docker-compose up -d
+npm install
+npm run prisma:migrate
+npm run prisma:seed
+npm run start:all
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Open http://localhost:5173
+
+The SPA is built with React 19 + TypeScript strict + Vite + Tailwind CSS and uses
+plain `fetch` in a centralized API client (`frontend/src/lib/api.ts`). UI follows a
+minimal light theme with white surfaces, subtle borders, and Feather icons.
+
+#### Frontend UX highlights
+
+- Toast notifications for API failures and rate limiting (with countdown hints)
+- Keyboard shortcuts: `Cmd/Ctrl + Enter` to submit, `r` to replay on check details
+- First-visit onboarding modal persisted in `localStorage`
+- Accessibility polish (labels, live status region for pipeline updates, visible focus)
+- Empty states for first-time sidebar and quick-start guidance on the home screen
+
+#### Screenshots (placeholders)
+
+- `docs/screenshots/home-empty.png`
+- `docs/screenshots/home-filled.png`
+- `docs/screenshots/check-detail.png`
+- `docs/screenshots/rate-limit-toast.png`
+
 ## Process modes
 
 - `npm run start:all` — HTTP + worker in one process (default for dev)
@@ -124,6 +166,16 @@ curl -X POST http://localhost:3000/api/v1/content-risk-checks \
 - Prompt cache TTL is 60 s; activation propagation lag of up to 60 s across workers.
 - Worker can run as a separate process (`npm run start:worker`), but the default dev mode is combined.
 - LLM gateway is OpenRouter; switching to direct Anthropic only requires swapping the `LlmClient` adapter — the interface is stable.
+
+## Production Notes
+
+- Build frontend with `cd frontend && npm run build` and serve `frontend/dist` behind
+  the API domain or a reverse proxy.
+- Set `VITE_API_BASE_URL` in frontend environment to point to the production
+  `/api/v1` endpoint.
+- Keep CORS and CSP aligned with your deployed frontend origin.
+- Current backend throttling is in-memory; for multi-instance production, replace
+  with Redis-backed throttling.
 
 ## Testing
 
