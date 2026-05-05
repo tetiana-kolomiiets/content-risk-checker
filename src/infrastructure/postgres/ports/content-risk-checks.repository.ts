@@ -40,6 +40,6 @@ export interface ContentRiskChecksRepository {
 
   findActiveByContentHash(
     contentHash: string,
-    promptVersionId?: string | null,
-  ): Promise<ContentRiskCheck | Error>;
+    promptVersionId: string,
+  ): Promise<ContentRiskCheck | null | Error>;
 }

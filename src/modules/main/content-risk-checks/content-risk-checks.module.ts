@@ -10,6 +10,9 @@ import { ContentRiskChecksController } from './content-risk-checks.controller';
 import { ContentRiskChecksPipelineService } from './content-risk-checks-pipeline.service';
 import { ContentRiskChecksProcessor } from './content-risk-checks.processor';
 import { ContentRiskChecksService } from './content-risk-checks.service';
+import { DetectDuplicateStep } from './pipeline/steps/detect-duplicate.step';
+import { NormalizeTextStep } from './pipeline/steps/normalize-text.step';
+import { RuleBasedScanStep } from './pipeline/steps/rule-based-scan.step';
 
 @Module({
   imports: [PrismaModule],
@@ -18,6 +21,9 @@ import { ContentRiskChecksService } from './content-risk-checks.service';
     ContentRiskChecksService,
     ContentRiskChecksProcessor,
     ContentRiskChecksPipelineService,
+    NormalizeTextStep,
+    DetectDuplicateStep,
+    RuleBasedScanStep,
     {
       provide: CONTENT_RISK_CHECKS_REPOSITORY,
       useClass: PrismaContentRiskChecksRepository,
