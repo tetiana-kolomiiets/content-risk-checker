@@ -7,6 +7,7 @@ export const contentRiskStepLogToDto = (
   return {
     id: stepLog.id,
     checkId: stepLog.checkId,
+    traceId: stepLog.traceId,
     stepName: stepLog.stepName,
     status: stepLog.status,
     attempt: stepLog.attempt,

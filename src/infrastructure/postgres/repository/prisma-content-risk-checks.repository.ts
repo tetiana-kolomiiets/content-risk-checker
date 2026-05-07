@@ -166,11 +166,16 @@ export class PrismaContentRiskChecksRepository implements ContentRiskChecksRepos
 
   async findActiveByContentHash(contentHash: string, promptVersionId: string) {
     try {
+      // Only the canonical winner (not a duplicate or replay) is "active" — that
+      // matches the partial unique index `uq_completed_check_per_hash_prompt`
+      // and prevents race-lost finalizers from forming a duplicate chain.
       const row = await this.prismaService.contentRiskCheck.findFirst({
         where: {
           contentHash,
           promptVersionId,
           status: ContentRiskCheckStatus.COMPLETED,
+          duplicateOfCheckId: null,
+          replayOfCheckId: null,
         },
         orderBy: { createdAt: 'desc' },
       });

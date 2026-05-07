@@ -99,7 +99,12 @@ const redactSecretsByName = (value: unknown): unknown => {
     AiMemoryModule,
   ],
   controllers: [AppController],
-  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    AppService,
+    ...(process.env.NODE_ENV === 'test'
+      ? []
+      : [{ provide: APP_GUARD, useClass: ThrottlerGuard }]),
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

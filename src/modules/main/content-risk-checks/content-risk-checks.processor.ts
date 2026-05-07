@@ -46,14 +46,11 @@ export class ContentRiskChecksProcessor
 
   async process(job: Job<AnalysisJobPayload>): Promise<void> {
     return TraceContext.run(job.data.traceId, async () => {
+      await this.checksRepo.update({
+        id: job.data.checkId,
+        retryCount: job.attemptsMade + 1,
+      });
       if (job.attemptsMade > 0) {
-        const current = await this.checksRepo.getById(job.data.checkId);
-        if (!(current instanceof Error) && current) {
-          await this.checksRepo.update({
-            id: job.data.checkId,
-            retryCount: current.retryCount + 1,
-          });
-        }
         this.logger.warn(
           { attempt: job.attemptsMade + 1, checkId: job.data.checkId },
           'Retrying check analysis',
