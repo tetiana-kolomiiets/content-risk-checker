@@ -13,7 +13,7 @@ export function OnboardingModal({ isOpen, onConfirm }: OnboardingModalProps) {
       <div className="w-full max-w-lg rounded-lg border border-border bg-surface p-6 shadow-sm">
         <h2 className="text-[22px] font-medium text-text-primary">Welcome to Content Risk Checker</h2>
         <p className="mt-3 text-sm text-text-secondary">
-          Submit any text and watch the 6-step pipeline analyze it for risk. Every decision is auditable,
+          Submit any text and watch the  AI agent analyze it for risk. Every decision is auditable,
           replayable, and includes the AI&apos;s reasoning.
         </p>
         <button

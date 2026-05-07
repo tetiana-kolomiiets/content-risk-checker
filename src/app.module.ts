@@ -20,12 +20,17 @@ import { PromptsModule } from './modules/main/prompts/prompts.module';
 
 const SECRET_KEY_PATTERN = /(key|token|password)/i;
 
-const redactSecretsByName = (value: unknown): unknown => {
+const redactSecretsByName = (
+  value: unknown,
+  seen: WeakSet<object> = new WeakSet(),
+): unknown => {
   if (value === null || typeof value !== 'object') return value;
-  if (Array.isArray(value)) return value.map(redactSecretsByName);
+  if (seen.has(value as object)) return '[Circular]';
+  seen.add(value as object);
+  if (Array.isArray(value)) return value.map((v) => redactSecretsByName(v, seen));
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-    out[k] = SECRET_KEY_PATTERN.test(k) ? '[Redacted]' : redactSecretsByName(v);
+    out[k] = SECRET_KEY_PATTERN.test(k) ? '[Redacted]' : redactSecretsByName(v, seen);
   }
   return out;
 };
