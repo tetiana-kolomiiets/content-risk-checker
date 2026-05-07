@@ -222,6 +222,7 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
     analysisResultsRepo = {
       create: jest.fn(),
       getByCheckId: jest.fn(),
+      upsertByCheckId: jest.fn(),
       delete: jest.fn(),
     };
     stepLogsRepo = {
@@ -637,7 +638,9 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
     analysisResultsRepo.create.mockResolvedValue(
       buildAnalysisResult({ checkId: CHECK_ID }),
     );
-    analysisResultsRepo.delete.mockResolvedValue(undefined);
+    analysisResultsRepo.upsertByCheckId.mockResolvedValue(
+      buildAnalysisResult({ checkId: CHECK_ID }),
+    );
 
     const winnerResult = buildAnalysisResult({
       checkId: WINNER_ID,
@@ -681,9 +684,9 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
 
     await runner.run(CHECK_ID, TRACE_ID);
 
-    // Race fallback: own analysis result is deleted, then winner's is copied.
-    expect(analysisResultsRepo.delete).toHaveBeenCalledWith(CHECK_ID);
-    expect(analysisResultsRepo.create).toHaveBeenCalledWith(
+
+    expect(analysisResultsRepo.delete).not.toHaveBeenCalled();
+    expect(analysisResultsRepo.upsertByCheckId).toHaveBeenCalledWith(
       expect.objectContaining({
         checkId: CHECK_ID,
         finalRiskLevel: winnerResult.finalRiskLevel,
@@ -698,6 +701,132 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
         c[0].duplicateOfCheckId === WINNER_ID,
     );
     expect(refinalize).toBeDefined();
+  });
+
+  it('race fallback: upsertByCheckId failure halts recovery — checksRepo.update for refinalize NOT called, no data loss', async () => {
+    checksRepo.getById.mockResolvedValue(buildCheck());
+
+    normalize.execute.mockResolvedValue(
+      ok({ normalizedText: 'hello world' }, normalizeDetails),
+    );
+    detectDuplicate.execute.mockResolvedValue(
+      ok(
+        {
+          duplicateOfCheckId: null,
+          finalAnalysisResult: null,
+        },
+        dedupeDetails(null),
+      ),
+    );
+    ruleBasedScan.execute.mockResolvedValue(
+      ok(
+        {
+          score: 0,
+          flags: [],
+          matchedRules: [],
+          matchedRulesCount: 0,
+          totalRulesChecked: 9,
+          flaggedFragments: [],
+        },
+        ruleDetails,
+      ),
+    );
+    retrieveAiContext.execute.mockResolvedValue(
+      ok(
+        {
+          examples: [],
+          embedding: [0.1, 0.2],
+          embeddingModel: 'openai/text-embedding-3-small',
+        },
+        retrieveDetails,
+      ),
+    );
+    aiAnalysis.execute.mockResolvedValue(
+      ok(
+        {
+          finalLevel: ContentRiskLevel.LOW,
+          categories: [],
+          score: 0,
+          rationale: 'safe',
+          flaggedFragments: [],
+        },
+        aiDetails,
+      ),
+    );
+    aggregate.execute.mockResolvedValue(
+      ok(
+        {
+          finalRiskLevel: ContentRiskLevel.LOW,
+          categories: [],
+          matchedRulesCount: 0,
+          totalRulesChecked: 9,
+          flaggedFragments: [],
+          matchedRules: [],
+          summary: 'safe',
+        },
+        aggDetails,
+      ),
+    );
+    persistAiMemory.execute.mockResolvedValue(
+      ok({ persisted: true }, persistMemoryDetails),
+    );
+
+    analysisResultsRepo.create.mockResolvedValue(
+      buildAnalysisResult({ checkId: CHECK_ID }),
+    );
+    analysisResultsRepo.upsertByCheckId.mockRejectedValueOnce(
+      new Error('upsert failed mid-recovery'),
+    );
+
+    const winnerResult = buildAnalysisResult({
+      checkId: WINNER_ID,
+      finalRiskLevel: ContentRiskLevel.HIGH,
+      summary: 'winner summary',
+    });
+    const winnerCheck = buildCheck({
+      id: WINNER_ID,
+      status: ContentRiskCheckStatus.COMPLETED,
+    });
+    checksRepo.findActiveByContentHash.mockResolvedValue(winnerCheck);
+    analysisResultsRepo.getByCheckId
+      .mockResolvedValueOnce(null)
+      .mockResolvedValue(winnerResult);
+
+    let updateCount = 0;
+    type UpdateInput = Parameters<ContentRiskChecksRepository['update']>[0];
+    checksRepo.update.mockImplementation((data: UpdateInput) => {
+      updateCount += 1;
+      // First COMPLETED finalize attempt loses the race with P2002.
+      if (
+        data.status === ContentRiskCheckStatus.COMPLETED &&
+        updateCount === 9
+      ) {
+        return Promise.reject(
+          new UniqueConstraintError(
+            'Failed to update content risk check',
+            'Failed to update content risk check',
+            { code: 'P2002' },
+          ),
+        );
+      }
+      return Promise.resolve(buildCheck({ ...data }));
+    });
+
+    await expect(runner.run(CHECK_ID, TRACE_ID)).rejects.toThrow(
+      'upsert failed mid-recovery',
+    );
+
+    // The recovery path called upsertByCheckId once and it threw. The
+    // refinalize update (status=COMPLETED, duplicateOfCheckId=winner) must
+    // NOT have been issued — otherwise the check would be flagged COMPLETED
+    // while pointing at a stale or missing analysis-result row.
+    expect(analysisResultsRepo.upsertByCheckId).toHaveBeenCalledTimes(1);
+    const refinalize = checksRepo.update.mock.calls.find(
+      (c) =>
+        c[0].status === ContentRiskCheckStatus.COMPLETED &&
+        c[0].duplicateOfCheckId === WINNER_ID,
+    );
+    expect(refinalize).toBeUndefined();
   });
 
   it('retry idempotency: two consecutive run() invocations call aiAnalysis.execute exactly once', async () => {

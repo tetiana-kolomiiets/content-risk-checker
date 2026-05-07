@@ -81,6 +81,7 @@ describe('DetectDuplicateStep', () => {
     analysisResultsRepo = {
       create: jest.fn(),
       getByCheckId: jest.fn(),
+      upsertByCheckId: jest.fn(),
       delete: jest.fn(),
     };
     step = new DetectDuplicateStep(checksRepo, analysisResultsRepo);

@@ -248,8 +248,7 @@ export class ContentRiskChecksPipelineService {
     }
 
     if (ranOwnAnalysis) {
-      await this.analysisResultsRepo.delete(checkId);
-      await this.analysisResultsRepo.create({
+      await this.analysisResultsRepo.upsertByCheckId({
         checkId,
         finalRiskLevel: winnerResult.finalRiskLevel,
         categories: winnerResult.categories,

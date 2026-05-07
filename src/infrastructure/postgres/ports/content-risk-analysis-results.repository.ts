@@ -21,5 +21,16 @@ export interface ContentRiskAnalysisResultsRepository {
 
   getByCheckId(checkId: string): Promise<ContentRiskAnalysisResult | null>;
 
+  upsertByCheckId(data: {
+    checkId: string;
+    finalRiskLevel: ContentRiskLevel;
+    categories: ContentRiskCategory[];
+    matchedRulesCount: number;
+    totalRulesChecked: number;
+    flaggedFragments: FlaggedFragment[];
+    matchedRules: MatchedRule[];
+    summary?: string | null;
+  }): Promise<ContentRiskAnalysisResult>;
+
   delete(checkId: string): Promise<void>;
 }
