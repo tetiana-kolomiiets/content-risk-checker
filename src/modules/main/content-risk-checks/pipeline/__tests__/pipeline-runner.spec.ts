@@ -96,7 +96,7 @@ interface StubStep<I, O> extends PipelineStep<I, O> {
 
 const makeStep = <I, O>(name: ContentRiskStepName): StubStep<I, O> => ({
   name,
-  execute: jest.fn(),
+  execute: jest.fn() as StubStep<I, O>['execute'],
 });
 
 const ok = <O>(output: O, details: unknown): StepResult<O> => ({
@@ -250,11 +250,13 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
     };
 
     let logIdCounter = 0;
-    stepLogsRepo.create.mockImplementation(async () => {
+    stepLogsRepo.create.mockImplementation(() => {
       logIdCounter += 1;
-      return buildStepLog(`log-${logIdCounter}`);
+      return Promise.resolve(buildStepLog(`log-${logIdCounter}`));
     });
-    stepLogsRepo.update.mockImplementation(async (id) => buildStepLog(id));
+    stepLogsRepo.update.mockImplementation((id: string) =>
+      Promise.resolve(buildStepLog(id)),
+    );
 
     runner = new ContentRiskChecksPipelineService(
       checksRepo,
@@ -600,7 +602,8 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
     //   8. final finalize → throw P2002
     //   9. refinalize with replayOfCheckId = winner.id
     let updateCount = 0;
-    checksRepo.update.mockImplementation(async (data) => {
+    type UpdateInput = Parameters<ContentRiskChecksRepository['update']>[0];
+    checksRepo.update.mockImplementation((data: UpdateInput) => {
       updateCount += 1;
       if (
         data.status === ContentRiskCheckStatus.COMPLETED &&
@@ -610,9 +613,9 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
           'unique constraint violation',
         );
         err.code = 'P2002';
-        throw err;
+        return Promise.reject(err);
       }
-      return buildCheck({ ...data });
+      return Promise.resolve(buildCheck({ ...data }));
     });
 
     await runner.run(CHECK_ID, TRACE_ID);

@@ -12,6 +12,9 @@ interface NormalizeOutput {
   normalizedText: string;
 }
 
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARS_RE = /[\x00-\x1F\x7F]/g;
+
 @Injectable()
 export class NormalizeTextStep implements PipelineStep<
   NormalizeInput,
@@ -19,20 +22,20 @@ export class NormalizeTextStep implements PipelineStep<
 > {
   readonly name = ContentRiskStepName.NORMALIZE_TEXT;
 
-  async execute(
+  execute(
     input: NormalizeInput,
     _ctx: StepContext,
   ): Promise<StepResult<NormalizeOutput>> {
     try {
       const cleaned = input.rawText
         .replace(/\s+/g, ' ')
-        .replace(/[\x00-\x1F\x7F]/g, '')
+        .replace(CONTROL_CHARS_RE, '')
         .trim()
         .toLowerCase();
 
       const charsRemoved = input.rawText.length - cleaned.length;
 
-      return {
+      return Promise.resolve({
         ok: true,
         output: { normalizedText: cleaned },
         details: {
@@ -40,9 +43,9 @@ export class NormalizeTextStep implements PipelineStep<
           charsRemoved,
           lowercased: true,
         },
-      };
+      });
     } catch (err) {
-      return {
+      return Promise.resolve({
         ok: false,
         error: { code: 'NORMALIZE_FAILED', message: (err as Error).message },
         details: {
@@ -50,7 +53,7 @@ export class NormalizeTextStep implements PipelineStep<
           charsRemoved: 0,
           lowercased: false,
         },
-      };
+      });
     }
   }
 }

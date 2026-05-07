@@ -56,7 +56,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const mapped = this.mapException(exception);
 
-    if (mapped.status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+    if (mapped.status >= 500) {
       this.logger.error(
         {
           err: exception,

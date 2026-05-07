@@ -10,7 +10,7 @@ export type ContentRiskStepLog = {
   attempt: number;
   message: string | null;
   errorMessage: string | null;
-  details: unknown | null;
+  details: unknown;
   startedAt: Date;
   finishedAt: Date | null;
   durationMs: number | null;

@@ -19,8 +19,8 @@ export class OpenRouterClient implements LlmClient {
     @InjectPinoLogger(OpenRouterClient.name)
     private readonly logger: PinoLogger,
   ) {
-    const apiKey = config.getOrThrow('OPENROUTER_API_KEY');
-    const baseURL = config.getOrThrow('OPENROUTER_BASE_URL');
+    const apiKey = config.get('OPENROUTER_API_KEY', { infer: true });
+    const baseURL = config.get('OPENROUTER_BASE_URL', { infer: true });
     const appName =
       config.get('OPENROUTER_APP_NAME', { infer: true }) ??
       'content-risk-checker';

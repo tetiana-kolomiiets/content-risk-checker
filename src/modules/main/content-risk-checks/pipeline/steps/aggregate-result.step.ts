@@ -53,7 +53,7 @@ export class AggregateResultStep implements PipelineStep<
 > {
   readonly name = ContentRiskStepName.AGGREGATE_RESULT;
 
-  async execute(
+  execute(
     input: AggregateInput,
     _ctx: StepContext,
   ): Promise<StepResult<AggregatedAnalysisResult>> {
@@ -86,7 +86,7 @@ export class AggregateResultStep implements PipelineStep<
         ...input.ruleResult.flaggedFragments,
       ];
 
-      return {
+      return Promise.resolve({
         ok: true,
         output: {
           finalRiskLevel: finalLevel,
@@ -104,9 +104,9 @@ export class AggregateResultStep implements PipelineStep<
           finalScore,
           finalLevel,
         },
-      };
+      });
     } catch (err) {
-      return {
+      return Promise.resolve({
         ok: false,
         error: { code: 'AGGREGATE_FAILED', message: (err as Error).message },
         details: {
@@ -116,7 +116,7 @@ export class AggregateResultStep implements PipelineStep<
           finalScore: 0,
           finalLevel: ContentRiskLevel.LOW,
         },
-      };
+      });
     }
   }
 }

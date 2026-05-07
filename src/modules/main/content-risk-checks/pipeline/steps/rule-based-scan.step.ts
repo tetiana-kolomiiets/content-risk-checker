@@ -138,7 +138,7 @@ export class RuleBasedScanStep implements PipelineStep<
 > {
   readonly name = ContentRiskStepName.RUN_RULE_BASED_CHECKS;
 
-  async execute(
+  execute(
     input: RuleBasedInput,
     _ctx: StepContext,
   ): Promise<StepResult<RuleBasedOutput>> {
@@ -165,7 +165,7 @@ export class RuleBasedScanStep implements PipelineStep<
       const flags = [...new Set(matchedRules.map((r) => r.category))];
       const score = Math.min(weightSum, 1);
 
-      return {
+      return Promise.resolve({
         ok: true,
         output: {
           score,
@@ -182,9 +182,9 @@ export class RuleBasedScanStep implements PipelineStep<
           flags: flags.map((f) => f.toString()),
           score,
         },
-      };
+      });
     } catch (err) {
-      return {
+      return Promise.resolve({
         ok: false,
         error: { code: 'RULE_SCAN_FAILED', message: (err as Error).message },
         details: {
@@ -194,7 +194,7 @@ export class RuleBasedScanStep implements PipelineStep<
           flags: [],
           score: 0,
         },
-      };
+      });
     }
   }
 }
