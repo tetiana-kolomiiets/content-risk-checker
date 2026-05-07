@@ -12,6 +12,7 @@ import {
   FAILED_TO_GET_CONTENT_RISK_CHECKS,
   FAILED_TO_UPDATE_CONTENT_RISK_CHECK,
 } from './repository-error-messages';
+import { RepositoryError } from './repository-error';
 import { toDomainContentRiskCheck } from './mappers/to-domain-content-risk-check.mapper';
 
 @Injectable()
@@ -43,8 +44,12 @@ export class PrismaContentRiskChecksRepository implements ContentRiskChecksRepos
       });
 
       return toDomainContentRiskCheck(row);
-    } catch {
-      return new Error(FAILED_TO_CREATE_CONTENT_RISK_CHECK);
+    } catch (err) {
+      return new RepositoryError(
+        FAILED_TO_CREATE_CONTENT_RISK_CHECK,
+        FAILED_TO_CREATE_CONTENT_RISK_CHECK,
+        err,
+      );
     }
   }
 
@@ -59,8 +64,12 @@ export class PrismaContentRiskChecksRepository implements ContentRiskChecksRepos
       }
 
       return toDomainContentRiskCheck(row);
-    } catch {
-      return new Error(FAILED_TO_GET_CONTENT_RISK_CHECK_BY_ID);
+    } catch (err) {
+      return new RepositoryError(
+        FAILED_TO_GET_CONTENT_RISK_CHECK_BY_ID,
+        FAILED_TO_GET_CONTENT_RISK_CHECK_BY_ID,
+        err,
+      );
     }
   }
 
@@ -72,8 +81,12 @@ export class PrismaContentRiskChecksRepository implements ContentRiskChecksRepos
       });
 
       return rows.map(toDomainContentRiskCheck);
-    } catch {
-      return new Error(FAILED_TO_GET_CONTENT_RISK_CHECKS);
+    } catch (err) {
+      return new RepositoryError(
+        FAILED_TO_GET_CONTENT_RISK_CHECKS,
+        FAILED_TO_GET_CONTENT_RISK_CHECKS,
+        err,
+      );
     }
   }
 
@@ -111,7 +124,11 @@ export class PrismaContentRiskChecksRepository implements ContentRiskChecksRepos
       if (isPrismaUniqueConstraintError(err)) {
         throw err;
       }
-      return new Error(FAILED_TO_UPDATE_CONTENT_RISK_CHECK);
+      return new RepositoryError(
+        FAILED_TO_UPDATE_CONTENT_RISK_CHECK,
+        FAILED_TO_UPDATE_CONTENT_RISK_CHECK,
+        err,
+      );
     }
   }
 
@@ -129,12 +146,19 @@ export class PrismaContentRiskChecksRepository implements ContentRiskChecksRepos
       });
 
       if (!row) {
-        return new Error(FAILED_TO_FIND_CONTENT_RISK_CHECK_BY_CONTENT_HASH);
+        return new RepositoryError(
+          FAILED_TO_FIND_CONTENT_RISK_CHECK_BY_CONTENT_HASH,
+          FAILED_TO_FIND_CONTENT_RISK_CHECK_BY_CONTENT_HASH,
+        );
       }
 
       return toDomainContentRiskCheck(row);
-    } catch {
-      return new Error(FAILED_TO_FIND_CONTENT_RISK_CHECK_BY_CONTENT_HASH);
+    } catch (err) {
+      return new RepositoryError(
+        FAILED_TO_FIND_CONTENT_RISK_CHECK_BY_CONTENT_HASH,
+        FAILED_TO_FIND_CONTENT_RISK_CHECK_BY_CONTENT_HASH,
+        err,
+      );
     }
   }
 
@@ -154,8 +178,12 @@ export class PrismaContentRiskChecksRepository implements ContentRiskChecksRepos
       }
 
       return toDomainContentRiskCheck(row);
-    } catch {
-      return new Error(FAILED_TO_FIND_CONTENT_RISK_CHECK_BY_CONTENT_HASH);
+    } catch (err) {
+      return new RepositoryError(
+        FAILED_TO_FIND_CONTENT_RISK_CHECK_BY_CONTENT_HASH,
+        FAILED_TO_FIND_CONTENT_RISK_CHECK_BY_CONTENT_HASH,
+        err,
+      );
     }
   }
 }

@@ -64,7 +64,19 @@ const redactSecretsByName = (value: unknown): unknown => {
           serializers: {
             req: pino.stdSerializers.req,
             res: pino.stdSerializers.res,
-            err: pino.stdSerializers.err,
+            err: (err: Error & { cause?: unknown; prismaCode?: string }) => {
+              const base = pino.stdSerializers.err(err) as Record<
+                string,
+                unknown
+              >;
+              if (err.cause !== undefined) {
+                base.cause = pino.stdSerializers.err(err.cause as Error);
+              }
+              if (typeof err.prismaCode === 'string') {
+                base.prismaCode = err.prismaCode;
+              }
+              return base;
+            },
           },
         },
       }),

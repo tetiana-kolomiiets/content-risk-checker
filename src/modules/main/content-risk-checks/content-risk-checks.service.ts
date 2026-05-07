@@ -26,6 +26,7 @@ import {
   PROMPTS_REPOSITORY,
   PromptsRepository,
 } from '../../../infrastructure/postgres/ports/prompts.repository';
+import { RepositoryError } from '../../../infrastructure/postgres/repository/repository-error';
 import { AnalysisQueue } from './analysis.queue';
 import { ContentRiskCheckDto } from './dto/content-risk-check.dto';
 import { ContentRiskStepLogDto } from './dto/content-risk-step-log.dto';
@@ -212,7 +213,14 @@ export class ContentRiskChecksService {
 
   private unwrap<T>(result: T | Error): T {
     if (result instanceof Error) {
-      this.logger.error({ err: result }, 'Repository error');
+      if (result instanceof RepositoryError) {
+        this.logger.error(
+          { err: result, cause: result.cause, prismaCode: result.prismaCode },
+          'Repository error',
+        );
+      } else {
+        this.logger.error({ err: result }, 'Repository error');
+      }
       throw new InternalServerErrorException('Database error');
     }
     return result;

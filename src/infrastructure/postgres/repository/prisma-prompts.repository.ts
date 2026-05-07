@@ -8,6 +8,7 @@ import {
   FAILED_TO_GET_ACTIVE_PROMPT_BY_NAME,
   FAILED_TO_GET_PROMPT_BY_ID,
 } from './repository-error-messages';
+import { RepositoryError } from './repository-error';
 
 const CACHE_TTL_MS = 60_000;
 
@@ -60,8 +61,12 @@ export class PrismaPromptsRepository implements PromptsRepository {
         'Active prompt cache miss — loaded from DB',
       );
       return prompt;
-    } catch {
-      return new Error(FAILED_TO_GET_ACTIVE_PROMPT_BY_NAME);
+    } catch (err) {
+      return new RepositoryError(
+        FAILED_TO_GET_ACTIVE_PROMPT_BY_NAME,
+        FAILED_TO_GET_ACTIVE_PROMPT_BY_NAME,
+        err,
+      );
     }
   }
 
@@ -71,8 +76,12 @@ export class PrismaPromptsRepository implements PromptsRepository {
         where: { id },
       });
       return row ? toDomainPrompt(row) : null;
-    } catch {
-      return new Error(FAILED_TO_GET_PROMPT_BY_ID);
+    } catch (err) {
+      return new RepositoryError(
+        FAILED_TO_GET_PROMPT_BY_ID,
+        FAILED_TO_GET_PROMPT_BY_ID,
+        err,
+      );
     }
   }
 

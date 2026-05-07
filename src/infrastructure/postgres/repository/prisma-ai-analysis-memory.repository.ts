@@ -14,6 +14,7 @@ import {
   FAILED_TO_CREATE_AI_MEMORY,
   FAILED_TO_FIND_SIMILAR_AI_MEMORIES,
 } from './repository-error-messages';
+import { RepositoryError } from './repository-error';
 
 interface SimilarRow {
   contentSnippet: string;
@@ -62,8 +63,12 @@ export class PrismaAiAnalysisMemoryRepository implements AiAnalysisMemoryReposit
           rationale: r.rationale,
           similarity: r.similarity,
         }));
-    } catch {
-      return new Error(FAILED_TO_FIND_SIMILAR_AI_MEMORIES);
+    } catch (err) {
+      return new RepositoryError(
+        FAILED_TO_FIND_SIMILAR_AI_MEMORIES,
+        FAILED_TO_FIND_SIMILAR_AI_MEMORIES,
+        err,
+      );
     }
   }
 
@@ -107,11 +112,18 @@ export class PrismaAiAnalysisMemoryRepository implements AiAnalysisMemoryReposit
       );
 
       if (rows.length === 0) {
-        return new Error(AI_MEMORY_DUPLICATE_CHECK_ID);
+        return new RepositoryError(
+          AI_MEMORY_DUPLICATE_CHECK_ID,
+          AI_MEMORY_DUPLICATE_CHECK_ID,
+        );
       }
       return { id: rows[0].id };
-    } catch {
-      return new Error(FAILED_TO_CREATE_AI_MEMORY);
+    } catch (err) {
+      return new RepositoryError(
+        FAILED_TO_CREATE_AI_MEMORY,
+        FAILED_TO_CREATE_AI_MEMORY,
+        err,
+      );
     }
   }
 }

@@ -137,6 +137,7 @@ export class ContentRiskChecksPipelineService {
           ContentRiskStepName.AGGREGATE_RESULT,
           'PERSIST_RESULT_FAILED',
           created.message,
+          created,
         );
       }
 
@@ -184,6 +185,7 @@ export class ContentRiskChecksPipelineService {
           ContentRiskStepName.AGGREGATE_RESULT,
           'FINALIZE_FAILED',
           finalized.message,
+          finalized,
         );
       }
       return;
@@ -201,6 +203,7 @@ export class ContentRiskChecksPipelineService {
         ContentRiskStepName.AGGREGATE_RESULT,
         'FINALIZE_RACE_LOOKUP_FAILED',
         winnerLookup.message,
+        winnerLookup,
       );
     }
     if (!winnerLookup || winnerLookup.id === checkId) {
@@ -228,6 +231,7 @@ export class ContentRiskChecksPipelineService {
           ContentRiskStepName.AGGREGATE_RESULT,
           'FINALIZE_RACE_DELETE_FAILED',
           deleted.message,
+          deleted,
         );
       }
       const copied = await this.analysisResultsRepo.create({
@@ -245,6 +249,7 @@ export class ContentRiskChecksPipelineService {
           ContentRiskStepName.AGGREGATE_RESULT,
           'FINALIZE_RACE_COPY_FAILED',
           copied.message,
+          copied,
         );
       }
     }
@@ -261,6 +266,7 @@ export class ContentRiskChecksPipelineService {
         ContentRiskStepName.AGGREGATE_RESULT,
         'FINALIZE_RACE_REFINALIZE_FAILED',
         refinalized.message,
+        refinalized,
       );
     }
 
@@ -364,6 +370,7 @@ export class ContentRiskChecksPipelineService {
         step.name,
         'STEP_LOG_CREATE_FAILED',
         started.message,
+        started,
       );
     }
 

@@ -9,6 +9,7 @@ import {
   FAILED_TO_GET_CONTENT_RISK_STEP_LOGS_BY_CHECK_ID,
   FAILED_TO_UPDATE_CONTENT_RISK_STEP_LOG,
 } from './repository-error-messages';
+import { RepositoryError } from './repository-error';
 import { toDomainContentRiskStepLog } from './mappers/to-domain-content-risk-step-log.mapper';
 
 @Injectable()
@@ -46,8 +47,12 @@ export class PrismaContentRiskStepLogsRepository implements ContentRiskStepLogsR
       });
 
       return toDomainContentRiskStepLog(row);
-    } catch {
-      return new Error(FAILED_TO_CREATE_CONTENT_RISK_STEP_LOG);
+    } catch (err) {
+      return new RepositoryError(
+        FAILED_TO_CREATE_CONTENT_RISK_STEP_LOG,
+        FAILED_TO_CREATE_CONTENT_RISK_STEP_LOG,
+        err,
+      );
     }
   }
 
@@ -76,8 +81,12 @@ export class PrismaContentRiskStepLogsRepository implements ContentRiskStepLogsR
       });
 
       return toDomainContentRiskStepLog(row);
-    } catch {
-      return new Error(FAILED_TO_UPDATE_CONTENT_RISK_STEP_LOG);
+    } catch (err) {
+      return new RepositoryError(
+        FAILED_TO_UPDATE_CONTENT_RISK_STEP_LOG,
+        FAILED_TO_UPDATE_CONTENT_RISK_STEP_LOG,
+        err,
+      );
     }
   }
 
@@ -89,8 +98,12 @@ export class PrismaContentRiskStepLogsRepository implements ContentRiskStepLogsR
       });
 
       return rows.map(toDomainContentRiskStepLog);
-    } catch {
-      return new Error(FAILED_TO_GET_CONTENT_RISK_STEP_LOGS_BY_CHECK_ID);
+    } catch (err) {
+      return new RepositoryError(
+        FAILED_TO_GET_CONTENT_RISK_STEP_LOGS_BY_CHECK_ID,
+        FAILED_TO_GET_CONTENT_RISK_STEP_LOGS_BY_CHECK_ID,
+        err,
+      );
     }
   }
 }

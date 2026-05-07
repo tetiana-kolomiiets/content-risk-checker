@@ -9,6 +9,7 @@ import {
   FAILED_TO_DELETE_CONTENT_RISK_ANALYSIS_RESULT,
   FAILED_TO_GET_CONTENT_RISK_ANALYSIS_RESULT_BY_CHECK_ID,
 } from './repository-error-messages';
+import { RepositoryError } from './repository-error';
 import { toDomainContentRiskAnalysisResult } from './mappers/to-domain-content-risk-analysis-result.mapper';
 
 @Injectable()
@@ -40,8 +41,12 @@ export class PrismaContentRiskAnalysisResultsRepository implements ContentRiskAn
       });
 
       return toDomainContentRiskAnalysisResult(row);
-    } catch {
-      return new Error(FAILED_TO_CREATE_CONTENT_RISK_ANALYSIS_RESULT);
+    } catch (err) {
+      return new RepositoryError(
+        FAILED_TO_CREATE_CONTENT_RISK_ANALYSIS_RESULT,
+        FAILED_TO_CREATE_CONTENT_RISK_ANALYSIS_RESULT,
+        err,
+      );
     }
   }
 
@@ -58,8 +63,12 @@ export class PrismaContentRiskAnalysisResultsRepository implements ContentRiskAn
       }
 
       return toDomainContentRiskAnalysisResult(row);
-    } catch {
-      return new Error(FAILED_TO_GET_CONTENT_RISK_ANALYSIS_RESULT_BY_CHECK_ID);
+    } catch (err) {
+      return new RepositoryError(
+        FAILED_TO_GET_CONTENT_RISK_ANALYSIS_RESULT_BY_CHECK_ID,
+        FAILED_TO_GET_CONTENT_RISK_ANALYSIS_RESULT_BY_CHECK_ID,
+        err,
+      );
     }
   }
 
@@ -68,8 +77,12 @@ export class PrismaContentRiskAnalysisResultsRepository implements ContentRiskAn
       await this.prismaService.contentRiskAnalysisResult.deleteMany({
         where: { checkId },
       });
-    } catch {
-      return new Error(FAILED_TO_DELETE_CONTENT_RISK_ANALYSIS_RESULT);
+    } catch (err) {
+      return new RepositoryError(
+        FAILED_TO_DELETE_CONTENT_RISK_ANALYSIS_RESULT,
+        FAILED_TO_DELETE_CONTENT_RISK_ANALYSIS_RESULT,
+        err,
+      );
     }
   }
 }
