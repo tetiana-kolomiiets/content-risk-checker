@@ -94,7 +94,6 @@ describe('DetectDuplicateStep', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.output.duplicateOfCheckId).toBeNull();
-    expect(result.output.copiedAnalysisResultId).toBeNull();
     expect(result.output.finalAnalysisResult).toBeNull();
     expect(analysisResultsRepo.create).not.toHaveBeenCalled();
   });
@@ -123,39 +122,22 @@ describe('DetectDuplicateStep', () => {
     );
   });
 
-  it('copies winner analysisResult fields when duplicate found', async () => {
+  it('returns winner analysisResult when duplicate found, without writing to DB', async () => {
     checksRepo.findActiveByContentHash.mockResolvedValue(buildCheck());
     const sourceResult = buildAnalysisResult();
     analysisResultsRepo.getByCheckId.mockResolvedValue(sourceResult);
-    analysisResultsRepo.create.mockResolvedValue({
-      ...sourceResult,
-      id: 'copied-res',
-      checkId: SELF_ID,
-    });
 
     const result = await step.execute(input, ctx);
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.output.duplicateOfCheckId).toBe(OTHER_ID);
-    expect(result.output.copiedAnalysisResultId).toBe('copied-res');
     expect(result.output.finalAnalysisResult).toBe(sourceResult);
     expect(result.details).toMatchObject({
       stepName: ContentRiskStepName.DETECT_DUPLICATE,
       duplicateOfCheckId: OTHER_ID,
     });
-    expect(analysisResultsRepo.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        checkId: SELF_ID,
-        finalRiskLevel: sourceResult.finalRiskLevel,
-        categories: sourceResult.categories,
-        matchedRulesCount: sourceResult.matchedRulesCount,
-        totalRulesChecked: sourceResult.totalRulesChecked,
-        flaggedFragments: sourceResult.flaggedFragments,
-        matchedRules: sourceResult.matchedRules,
-        summary: sourceResult.summary,
-      }),
-    );
+    expect(analysisResultsRepo.create).not.toHaveBeenCalled();
   });
 
   it('returns DEDUP_LOOKUP_FAILED when checks repo errors', async () => {
@@ -178,18 +160,5 @@ describe('DetectDuplicateStep', () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.code).toBe('DEDUP_SOURCE_RESULT_MISSING');
-  });
-
-  it('returns DEDUP_COPY_FAILED when copy create errors', async () => {
-    checksRepo.findActiveByContentHash.mockResolvedValue(buildCheck());
-    analysisResultsRepo.getByCheckId.mockResolvedValue(buildAnalysisResult());
-    analysisResultsRepo.create.mockResolvedValue(new Error('copy fail'));
-
-    const result = await step.execute(input, ctx);
-
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.error.code).toBe('DEDUP_COPY_FAILED');
-    expect(result.error.message).toBe('copy fail');
   });
 });

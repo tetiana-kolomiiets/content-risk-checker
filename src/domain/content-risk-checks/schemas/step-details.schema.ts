@@ -43,6 +43,12 @@ export const StepDetailsSchema = z.discriminatedUnion('stepName', [
     finalScore: z.number().min(0).max(1),
     finalLevel: z.enum(ContentRiskLevel),
   }),
+  z.object({
+    stepName: z.literal(ContentRiskStepName.PERSIST_AI_MEMORY),
+    persisted: z.boolean(),
+    skipReason: z.enum(['DISABLED', 'NO_EMBEDDING', 'REPO_ERROR']).optional(),
+    errorMessage: z.string().optional(),
+  }),
 ]);
 
 export type StepDetails = z.infer<typeof StepDetailsSchema>;

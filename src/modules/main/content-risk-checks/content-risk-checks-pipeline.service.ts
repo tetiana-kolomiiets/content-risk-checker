@@ -1,18 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { PinoLogger } from 'nestjs-pino';
 import { isPrismaUniqueConstraintError } from '../../../common/utils/prisma-errors';
-import type { EnvConfig } from '../../../config/env.schema';
 import { ContentRiskCheckStatus } from '../../../domain/content-risk-checks/enums/content-risk-check-status.enum';
 import { ContentRiskStepName } from '../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
 import { StepExecutionStatus } from '../../../domain/content-risk-checks/enums/step-execution-status.enum';
 import { StepDetailsSchema } from '../../../domain/content-risk-checks/schemas/step-details.schema';
-import { ContentRiskCategory } from '../../../domain/content-risk-checks/enums/content-risk-category.enum';
-import { ContentRiskLevel } from '../../../domain/content-risk-checks/enums/content-risk-level.enum';
-import {
-  AI_ANALYSIS_MEMORY_REPOSITORY,
-  AiAnalysisMemoryRepository,
-} from '../../../infrastructure/postgres/ports/ai-analysis-memory.repository';
 import {
   CONTENT_RISK_ANALYSIS_RESULTS_REPOSITORY,
   ContentRiskAnalysisResultsRepository,
@@ -33,6 +25,7 @@ import { AggregateResultStep } from './pipeline/steps/aggregate-result.step';
 import { AiAnalysisStep } from './pipeline/steps/ai-analysis.step';
 import { DetectDuplicateStep } from './pipeline/steps/detect-duplicate.step';
 import { NormalizeTextStep } from './pipeline/steps/normalize-text.step';
+import { PersistAiMemoryStep } from './pipeline/steps/persist-ai-memory.step';
 import { RetrieveAiContextStep } from './pipeline/steps/retrieve-ai-context.step';
 import { RuleBasedScanStep } from './pipeline/steps/rule-based-scan.step';
 
@@ -45,15 +38,13 @@ export class ContentRiskChecksPipelineService {
     private readonly analysisResultsRepo: ContentRiskAnalysisResultsRepository,
     @Inject(CONTENT_RISK_STEP_LOGS_REPOSITORY)
     private readonly stepLogsRepo: ContentRiskStepLogsRepository,
-    @Inject(AI_ANALYSIS_MEMORY_REPOSITORY)
-    private readonly aiMemoryRepo: AiAnalysisMemoryRepository,
     private readonly normalize: NormalizeTextStep,
     private readonly detectDuplicate: DetectDuplicateStep,
     private readonly ruleBasedScan: RuleBasedScanStep,
     private readonly retrieveAiContext: RetrieveAiContextStep,
     private readonly aiAnalysis: AiAnalysisStep,
     private readonly aggregate: AggregateResultStep,
-    private readonly config: ConfigService<EnvConfig, true>,
+    private readonly persistAiMemory: PersistAiMemoryStep,
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext('PipelineRunner');
@@ -85,6 +76,25 @@ export class ContentRiskChecksPipelineService {
     const ranOwnAnalysis = dedupeOutput.duplicateOfCheckId === null;
 
     if (!ranOwnAnalysis) {
+      const winner = dedupeOutput.finalAnalysisResult!;
+      const copied = await this.analysisResultsRepo.create({
+        checkId,
+        finalRiskLevel: winner.finalRiskLevel,
+        categories: winner.categories,
+        matchedRulesCount: winner.matchedRulesCount,
+        totalRulesChecked: winner.totalRulesChecked,
+        flaggedFragments: winner.flaggedFragments,
+        matchedRules: winner.matchedRules,
+        summary: winner.summary,
+      });
+      if (copied instanceof Error) {
+        throw new PipelineFailedError(
+          ContentRiskStepName.DETECT_DUPLICATE,
+          'COPY_RESULT_FAILED',
+          copied.message,
+          copied,
+        );
+      }
       this.logger.info(
         { duplicateOfCheckId: dedupeOutput.duplicateOfCheckId, checkId },
         'Duplicate detected, skipping pipeline',
@@ -141,17 +151,20 @@ export class ContentRiskChecksPipelineService {
         );
       }
 
-      await this.persistAiMemory({
-        checkId,
+      await this.executeStep(
+        this.persistAiMemory,
+        {
+          contentHash: check.contentHash,
+          normalizedText: normalizeOutput.normalizedText,
+          embedding: retrieveOutput.embedding,
+          embeddingModel: retrieveOutput.embeddingModel,
+          finalRiskLevel: aggregatedOutput.finalRiskLevel,
+          categories: aggregatedOutput.categories,
+          rationale: aggregatedOutput.summary,
+        },
         ctx,
-        contentHash: check.contentHash,
-        normalizedText: normalizeOutput.normalizedText,
-        embedding: retrieveOutput.embedding,
-        embeddingModel: retrieveOutput.embeddingModel,
-        finalRiskLevel: aggregatedOutput.finalRiskLevel,
-        categories: aggregatedOutput.categories,
-        rationale: aggregatedOutput.summary,
-      });
+        attempt,
+      );
     }
 
     await this.finalizeCompleted(
@@ -274,45 +287,6 @@ export class ContentRiskChecksPipelineService {
       { winnerCheckId: winner.id, loserCheckId: checkId },
       'Race lost on finalize, copied winner result',
     );
-  }
-
-  private async persistAiMemory(args: {
-    checkId: string;
-    ctx: StepContext;
-    contentHash: string;
-    normalizedText: string;
-    embedding: number[];
-    embeddingModel: string;
-    finalRiskLevel: ContentRiskLevel;
-    categories: ContentRiskCategory[];
-    rationale: string;
-  }): Promise<void> {
-    const memoryEnabled = this.config.get('AI_MEMORY_ENABLED', { infer: true });
-    const hasEmbedding = args.embedding.length > 0;
-    if (!memoryEnabled || !hasEmbedding) return;
-
-    const created = await this.aiMemoryRepo.create({
-      checkId: args.checkId,
-      embedding: args.embedding,
-      embeddingModel: args.embeddingModel,
-      contentSnippet: args.normalizedText.slice(0, 200),
-      contentHash: args.contentHash,
-      finalRiskLevel: args.finalRiskLevel,
-      categories: args.categories,
-      rationale: args.rationale,
-      promptVersionId: args.ctx.promptVersionId,
-    });
-
-    if (created instanceof Error) {
-      this.logger.warn(
-        {
-          checkId: args.checkId,
-          traceId: args.ctx.traceId,
-          error: created.message,
-        },
-        'Failed to persist AI memory — non-fatal',
-      );
-    }
   }
 
   private async loadAndPrepareCheck(checkId: string) {

@@ -20,6 +20,7 @@ import { AggregateResultStep } from './pipeline/steps/aggregate-result.step';
 import { AiAnalysisStep } from './pipeline/steps/ai-analysis.step';
 import { DetectDuplicateStep } from './pipeline/steps/detect-duplicate.step';
 import { NormalizeTextStep } from './pipeline/steps/normalize-text.step';
+import { PersistAiMemoryStep } from './pipeline/steps/persist-ai-memory.step';
 import { RetrieveAiContextStep } from './pipeline/steps/retrieve-ai-context.step';
 import { RuleBasedScanStep } from './pipeline/steps/rule-based-scan.step';
 
@@ -38,6 +39,7 @@ const runWorker = process.env.DISABLE_WORKER !== 'true';
     RetrieveAiContextStep,
     AiAnalysisStep,
     AggregateResultStep,
+    PersistAiMemoryStep,
     ...(runWorker ? [ContentRiskChecksProcessor] : []),
     {
       provide: CONTENT_RISK_CHECKS_REPOSITORY,

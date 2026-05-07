@@ -20,7 +20,6 @@ interface DetectDuplicateInput {
 
 interface DetectDuplicateOutput {
   duplicateOfCheckId: string | null;
-  copiedAnalysisResultId: string | null;
   finalAnalysisResult: ContentRiskAnalysisResult | null;
 }
 
@@ -56,7 +55,6 @@ export class DetectDuplicateStep implements PipelineStep<
         ok: true,
         output: {
           duplicateOfCheckId: null,
-          copiedAnalysisResultId: null,
           finalAnalysisResult: null,
         },
         details: {
@@ -74,26 +72,10 @@ export class DetectDuplicateStep implements PipelineStep<
       );
     }
 
-    const copied = await this.analysisResultsRepo.create({
-      checkId: input.selfId,
-      finalRiskLevel: sourceResult.finalRiskLevel,
-      categories: sourceResult.categories,
-      matchedRulesCount: sourceResult.matchedRulesCount,
-      totalRulesChecked: sourceResult.totalRulesChecked,
-      flaggedFragments: sourceResult.flaggedFragments,
-      matchedRules: sourceResult.matchedRules,
-      summary: sourceResult.summary,
-    });
-
-    if (copied instanceof Error) {
-      return this.fail('DEDUP_COPY_FAILED', copied.message);
-    }
-
     return {
       ok: true,
       output: {
         duplicateOfCheckId: found.id,
-        copiedAnalysisResultId: copied.id,
         finalAnalysisResult: sourceResult,
       },
       details: {

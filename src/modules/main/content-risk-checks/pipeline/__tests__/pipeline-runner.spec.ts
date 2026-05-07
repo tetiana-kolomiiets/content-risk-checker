@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { ConfigService } from '@nestjs/config';
 import { PinoLogger } from 'nestjs-pino';
 import { ContentRiskCategory } from '../../../../../domain/content-risk-checks/enums/content-risk-category.enum';
 import { ContentRiskCheckStatus } from '../../../../../domain/content-risk-checks/enums/content-risk-check-status.enum';
@@ -10,7 +9,6 @@ import { StepExecutionStatus } from '../../../../../domain/content-risk-checks/e
 import { ContentRiskAnalysisResult } from '../../../../../domain/content-risk-checks/types/content-risk-analysis-result.type';
 import { ContentRiskCheck } from '../../../../../domain/content-risk-checks/types/content-risk-check.type';
 import { ContentRiskStepLog } from '../../../../../domain/content-risk-checks/types/content-risk-step-log.type';
-import { AiAnalysisMemoryRepository } from '../../../../../infrastructure/postgres/ports/ai-analysis-memory.repository';
 import { ContentRiskAnalysisResultsRepository } from '../../../../../infrastructure/postgres/ports/content-risk-analysis-results.repository';
 import { ContentRiskChecksRepository } from '../../../../../infrastructure/postgres/ports/content-risk-checks.repository';
 import { ContentRiskStepLogsRepository } from '../../../../../infrastructure/postgres/ports/content-risk-step-logs.repository';
@@ -22,6 +20,7 @@ import { AggregateResultStep } from '../steps/aggregate-result.step';
 import { AiAnalysisStep } from '../steps/ai-analysis.step';
 import { DetectDuplicateStep } from '../steps/detect-duplicate.step';
 import { NormalizeTextStep } from '../steps/normalize-text.step';
+import { PersistAiMemoryStep } from '../steps/persist-ai-memory.step';
 import { RetrieveAiContextStep } from '../steps/retrieve-ai-context.step';
 import { RuleBasedScanStep } from '../steps/rule-based-scan.step';
 
@@ -150,20 +149,21 @@ const aggDetails = {
   finalScore: 0,
   finalLevel: ContentRiskLevel.LOW,
 };
+const persistMemoryDetails = {
+  stepName: ContentRiskStepName.PERSIST_AI_MEMORY,
+  persisted: true,
+};
 
 describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
   let runner: ContentRiskChecksPipelineService;
   let checksRepo: jest.Mocked<ContentRiskChecksRepository>;
   let analysisResultsRepo: jest.Mocked<ContentRiskAnalysisResultsRepository>;
   let stepLogsRepo: jest.Mocked<ContentRiskStepLogsRepository>;
-  let aiMemoryRepo: jest.Mocked<AiAnalysisMemoryRepository>;
-  let configService: jest.Mocked<Pick<ConfigService, 'get'>>;
   let normalize: StubStep<unknown, { normalizedText: string }>;
   let detectDuplicate: StubStep<
     unknown,
     {
       duplicateOfCheckId: string | null;
-      copiedAnalysisResultId: string | null;
       finalAnalysisResult: ContentRiskAnalysisResult | null;
     }
   >;
@@ -204,6 +204,10 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
       summary: string;
     }
   >;
+  let persistAiMemory: StubStep<
+    unknown,
+    { persisted: boolean; skipReason?: string }
+  >;
 
   beforeEach(() => {
     checksRepo = {
@@ -224,22 +228,13 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
       update: jest.fn(),
       getByCheckId: jest.fn(),
     };
-    aiMemoryRepo = {
-      create: jest.fn().mockResolvedValue({ id: 'mem-1' }),
-      findSimilar: jest.fn().mockResolvedValue([]),
-    };
-    configService = {
-      get: jest.fn().mockImplementation((key: string) => {
-        if (key === 'AI_MEMORY_ENABLED') return true;
-        return undefined;
-      }),
-    };
     normalize = makeStep(ContentRiskStepName.NORMALIZE_TEXT);
     detectDuplicate = makeStep(ContentRiskStepName.DETECT_DUPLICATE);
     ruleBasedScan = makeStep(ContentRiskStepName.RUN_RULE_BASED_CHECKS);
     retrieveAiContext = makeStep(ContentRiskStepName.RETRIEVE_AI_CONTEXT);
     aiAnalysis = makeStep(ContentRiskStepName.RUN_AI_ANALYSIS);
     aggregate = makeStep(ContentRiskStepName.AGGREGATE_RESULT);
+    persistAiMemory = makeStep(ContentRiskStepName.PERSIST_AI_MEMORY);
 
     const logger: Partial<PinoLogger> = {
       setContext: jest.fn(),
@@ -262,19 +257,18 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
       checksRepo,
       analysisResultsRepo,
       stepLogsRepo,
-      aiMemoryRepo,
       normalize as unknown as NormalizeTextStep,
       detectDuplicate as unknown as DetectDuplicateStep,
       ruleBasedScan as unknown as RuleBasedScanStep,
       retrieveAiContext as unknown as RetrieveAiContextStep,
       aiAnalysis as unknown as AiAnalysisStep,
       aggregate as unknown as AggregateResultStep,
-      configService as never,
+      persistAiMemory as unknown as PersistAiMemoryStep,
       logger as PinoLogger,
     );
   });
 
-  it('happy path: runs all 6 steps, writes AnalysisResult, persists memory, marks COMPLETED', async () => {
+  it('happy path: runs all 7 steps, writes AnalysisResult, invokes persistAiMemory step, marks COMPLETED', async () => {
     checksRepo.getById.mockResolvedValue(buildCheck());
     checksRepo.update.mockResolvedValue(
       buildCheck({ status: ContentRiskCheckStatus.PROCESSING }),
@@ -290,7 +284,6 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
       ok(
         {
           duplicateOfCheckId: null,
-          copiedAnalysisResultId: null,
           finalAnalysisResult: null,
         },
         dedupeDetails(null),
@@ -345,6 +338,9 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
         aggDetails,
       ),
     );
+    persistAiMemory.execute.mockResolvedValue(
+      ok({ persisted: true }, persistMemoryDetails),
+    );
 
     await runner.run(CHECK_ID, TRACE_ID);
 
@@ -354,18 +350,24 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
     expect(retrieveAiContext.execute).toHaveBeenCalledTimes(1);
     expect(aiAnalysis.execute).toHaveBeenCalledTimes(1);
     expect(aggregate.execute).toHaveBeenCalledTimes(1);
+    expect(persistAiMemory.execute).toHaveBeenCalledTimes(1);
+    expect(persistAiMemory.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contentHash: 'hash-1',
+        embedding: [0.1, 0.2, 0.3],
+        embeddingModel: 'openai/text-embedding-3-small',
+        finalRiskLevel: ContentRiskLevel.LOW,
+        rationale: 'safe',
+      }),
+      expect.objectContaining({
+        checkId: CHECK_ID,
+        promptVersionId: PROMPT_ID,
+      }),
+    );
 
     expect(analysisResultsRepo.create).toHaveBeenCalledWith(
       expect.objectContaining({
         checkId: CHECK_ID,
-        finalRiskLevel: ContentRiskLevel.LOW,
-      }),
-    );
-
-    expect(aiMemoryRepo.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        checkId: CHECK_ID,
-        embedding: [0.1, 0.2, 0.3],
         finalRiskLevel: ContentRiskLevel.LOW,
       }),
     );
@@ -378,15 +380,15 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
       }),
     );
 
-    // Each of the 6 step logs gets created (STARTED) and then updated (COMPLETED).
-    expect(stepLogsRepo.create).toHaveBeenCalledTimes(6);
-    expect(stepLogsRepo.update).toHaveBeenCalledTimes(6);
+    // Each of the 7 step logs gets created (STARTED) and then updated (COMPLETED).
+    expect(stepLogsRepo.create).toHaveBeenCalledTimes(7);
+    expect(stepLogsRepo.update).toHaveBeenCalledTimes(7);
     for (const call of stepLogsRepo.update.mock.calls) {
       expect(call[1].status).toBe(StepExecutionStatus.COMPLETED);
     }
   });
 
-  it('failure mid-pipeline: only failing step logged FAILED, prior steps COMPLETED, no AnalysisResult written', async () => {
+  it('failure mid-pipeline: only failing step logged FAILED, prior steps COMPLETED, no AnalysisResult written, persistAiMemory not invoked', async () => {
     checksRepo.getById.mockResolvedValue(buildCheck());
     checksRepo.update.mockResolvedValue(buildCheck());
 
@@ -397,7 +399,6 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
       ok(
         {
           duplicateOfCheckId: null,
-          copiedAnalysisResultId: null,
           finalAnalysisResult: null,
         },
         dedupeDetails(null),
@@ -435,8 +436,8 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
     );
 
     expect(aggregate.execute).not.toHaveBeenCalled();
+    expect(persistAiMemory.execute).not.toHaveBeenCalled();
     expect(analysisResultsRepo.create).not.toHaveBeenCalled();
-    expect(aiMemoryRepo.create).not.toHaveBeenCalled();
 
     // No COMPLETED finalize update was attempted.
     const finalizeCalls = checksRepo.update.mock.calls.filter(
@@ -462,11 +463,14 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
     expect(failedCall?.[1].errorMessage).toContain('AI_VALIDATION_FAILED');
   });
 
-  it('DetectDuplicate skip path: rule/ai/aggregate steps are NOT logged, COMPLETED with copied result', async () => {
+  it('DetectDuplicate skip path: rule/ai/aggregate/persist steps NOT called, runner copies winner result, COMPLETED with replayOfCheckId', async () => {
     checksRepo.getById.mockResolvedValue(buildCheck());
     checksRepo.update.mockResolvedValue(buildCheck());
 
     const winnerResult = buildAnalysisResult();
+    analysisResultsRepo.create.mockResolvedValue(
+      buildAnalysisResult({ checkId: CHECK_ID }),
+    );
 
     normalize.execute.mockResolvedValue(
       ok({ normalizedText: 'hello world' }, normalizeDetails),
@@ -475,7 +479,6 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
       ok(
         {
           duplicateOfCheckId: WINNER_ID,
-          copiedAnalysisResultId: 'copy-1',
           finalAnalysisResult: winnerResult,
         },
         dedupeDetails(WINNER_ID),
@@ -488,6 +491,7 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
     expect(retrieveAiContext.execute).not.toHaveBeenCalled();
     expect(aiAnalysis.execute).not.toHaveBeenCalled();
     expect(aggregate.execute).not.toHaveBeenCalled();
+    expect(persistAiMemory.execute).not.toHaveBeenCalled();
 
     // Only normalize + detectDuplicate logged (2 step logs created).
     expect(stepLogsRepo.create).toHaveBeenCalledTimes(2);
@@ -499,10 +503,18 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
       ContentRiskStepName.DETECT_DUPLICATE,
     ]);
 
-    // No fresh AnalysisResult is written by the runner — DetectDuplicate copied it.
-    expect(analysisResultsRepo.create).not.toHaveBeenCalled();
-    // Memory not persisted on dedup-path — no fresh AI rationale exists.
-    expect(aiMemoryRepo.create).not.toHaveBeenCalled();
+    // Runner now performs the copy of the winner's analysis result.
+    expect(analysisResultsRepo.create).toHaveBeenCalledTimes(1);
+    expect(analysisResultsRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        checkId: CHECK_ID,
+        finalRiskLevel: winnerResult.finalRiskLevel,
+        categories: winnerResult.categories,
+        matchedRulesCount: winnerResult.matchedRulesCount,
+        totalRulesChecked: winnerResult.totalRulesChecked,
+        summary: winnerResult.summary,
+      }),
+    );
 
     expect(checksRepo.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -511,6 +523,46 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
         replayOfCheckId: WINNER_ID,
       }),
     );
+  });
+
+  it('DetectDuplicate copy failure: throws PipelineFailedError(DETECT_DUPLICATE, COPY_RESULT_FAILED)', async () => {
+    checksRepo.getById.mockResolvedValue(buildCheck());
+    checksRepo.update.mockResolvedValue(buildCheck());
+
+    const winnerResult = buildAnalysisResult();
+    analysisResultsRepo.create.mockResolvedValue(new Error('insert failed'));
+
+    normalize.execute.mockResolvedValue(
+      ok({ normalizedText: 'hello world' }, normalizeDetails),
+    );
+    detectDuplicate.execute.mockResolvedValue(
+      ok(
+        {
+          duplicateOfCheckId: WINNER_ID,
+          finalAnalysisResult: winnerResult,
+        },
+        dedupeDetails(WINNER_ID),
+      ),
+    );
+
+    let thrown: unknown;
+    try {
+      await runner.run(CHECK_ID, TRACE_ID);
+    } catch (err) {
+      thrown = err;
+    }
+
+    expect(thrown).toBeInstanceOf(PipelineFailedError);
+    const err = thrown as PipelineFailedError;
+    expect(err.stepName).toBe(ContentRiskStepName.DETECT_DUPLICATE);
+    expect(err.errorCode).toBe('COPY_RESULT_FAILED');
+
+    // Pipeline did not finalize.
+    const finalizeCalls = checksRepo.update.mock.calls.filter(
+      (c) => c[0].status === ContentRiskCheckStatus.COMPLETED,
+    );
+    expect(finalizeCalls).toHaveLength(0);
+    expect(persistAiMemory.execute).not.toHaveBeenCalled();
   });
 
   it('race fallback: P2002 on finalize → copy winner result, set replayOfCheckId to winner', async () => {
@@ -523,7 +575,6 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
       ok(
         {
           duplicateOfCheckId: null,
-          copiedAnalysisResultId: null,
           finalAnalysisResult: null,
         },
         dedupeDetails(null),
@@ -578,6 +629,9 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
         aggDetails,
       ),
     );
+    persistAiMemory.execute.mockResolvedValue(
+      ok({ persisted: true }, persistMemoryDetails),
+    );
 
     analysisResultsRepo.create.mockResolvedValue(
       buildAnalysisResult({ checkId: CHECK_ID }),
@@ -598,16 +652,16 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
 
     // Sequence of checksRepo.update calls:
     //   1. set PROCESSING (loadAndPrepareCheck)
-    //   2..7. currentStep updates per step (6 steps)
-    //   8. final finalize → throw P2002
-    //   9. refinalize with replayOfCheckId = winner.id
+    //   2..8. currentStep updates per step (7 steps)
+    //   9. final finalize → throw P2002
+    //   10. refinalize with replayOfCheckId = winner.id
     let updateCount = 0;
     type UpdateInput = Parameters<ContentRiskChecksRepository['update']>[0];
     checksRepo.update.mockImplementation((data: UpdateInput) => {
       updateCount += 1;
       if (
         data.status === ContentRiskCheckStatus.COMPLETED &&
-        updateCount === 8
+        updateCount === 9
       ) {
         const err: Error & { code?: string } = new Error(
           'unique constraint violation',

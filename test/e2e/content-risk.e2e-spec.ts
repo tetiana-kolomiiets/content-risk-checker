@@ -170,9 +170,10 @@ describe('Content risk checks (e2e)', () => {
         ContentRiskStepName.RUN_RULE_BASED_CHECKS,
         ContentRiskStepName.RUN_AI_ANALYSIS,
         ContentRiskStepName.AGGREGATE_RESULT,
+        ContentRiskStepName.PERSIST_AI_MEMORY,
       ]),
     );
-    expect(completedSteps.length).toBeGreaterThanOrEqual(5);
+    expect(completedSteps.length).toBeGreaterThanOrEqual(6);
 
     for (const log of logsBody.data) {
       expect(log.traceId).toBe(traceId);

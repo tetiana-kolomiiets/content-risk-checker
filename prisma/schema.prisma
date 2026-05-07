@@ -25,6 +25,7 @@ enum ContentRiskStepName {
   RETRIEVE_AI_CONTEXT
   RUN_AI_ANALYSIS
   AGGREGATE_RESULT
+  PERSIST_AI_MEMORY
 }
 
 enum ContentRiskCategory {
