@@ -197,6 +197,45 @@ Known limitations:
   `examplesFound=0` and `embeddingErrorCode` populated; the AI step still runs
   with empty examples; no memory row is written.
 
+## Rule-based scan
+
+The third pipeline step (`RUN_RULE_BASED_CHECKS`) applies cheap deterministic
+heuristics to the normalized text before any LLM call. It is **not** a robust
+safety net — it is a fast pre-filter whose output feeds into the final
+aggregation alongside the AI score.
+
+What it does:
+
+- Runs structural rules with stable IDs (`many_urls`, `char_repetition`,
+  `excessive_punctuation`, `all_caps`, `suspicious_tld`).
+- Runs blacklist rules loaded at startup from `config/rules/*.json`. Each file
+  is one rule (`{ id, category, weight, words[] }`) and is cached in memory by
+  `RulesProvider`. Edit the JSON and restart the worker to update wordlists; no
+  rebuild is required.
+- Emits a per-check `score` (sum of triggered rule weights, capped at 1), a
+  deduplicated list of `flags` (categories), and `flaggedFragments` ({ text,
+  reason }) for downstream display.
+
+What it explicitly does **not** do:
+
+- It is **not** a content moderation classifier. The shipped blacklists are
+  `placeholder_*` seeds — they intentionally do not contain real slurs or
+  threat terms, so on production traffic the blacklist rules will essentially
+  never fire on their own. The structural rules (URL counts, repetition,
+  shouting, suspicious TLDs) carry the rule-based signal in practice.
+- It does **not** decide the final risk level. Aggregation combines this score
+  with the AI score; either signal alone is insufficient.
+- It does **not** do tokenization, stemming, or fuzzy matching. Blacklist
+  matching is plain lowercased substring match — adversarial obfuscation
+  defeats it. That's the LLM's job.
+- It does **not** hot-reload. Wordlist edits require a worker restart.
+
+Replacing the seed wordlists with real lists is a deployment-time concern: drop
+your own `*.json` files into `config/rules/`, keep the schema, and restart.
+Tests inject their own `RulesProvider` via DI (see
+`rule-based-scan.step.spec.ts`) so the test suite is independent of whatever
+wordlists ship to production.
+
 ## Architecture Decisions
 
 - **Ports + adapters for repositories:** allows mocking in tests, isolates Prisma to the infrastructure layer (enforced by ESLint).

@@ -4,6 +4,7 @@ import { ContentRiskStepName } from '../../../../../domain/content-risk-checks/e
 import { PipelineStep } from '../contracts/pipeline-step.interface';
 import { StepContext } from '../contracts/step-context.type';
 import { StepResult } from '../contracts/step-result.type';
+import { BlacklistRule, RulesProvider } from './rules.provider';
 
 interface Rule {
   id: string;
@@ -12,27 +13,20 @@ interface Rule {
   test: (text: string) => Array<{ fragment: string }> | null;
 }
 
-function buildBlacklistRule(
-  id: string,
-  category: ContentRiskCategory,
-  weight: number,
-  words: string[],
-): Rule[] {
-  return [
-    {
-      id,
-      category,
-      weight,
-      test: (text) => {
-        const lower = text.toLowerCase();
-        const hits = words.filter((w) => lower.includes(w));
-        return hits.length > 0 ? hits.map((w) => ({ fragment: w })) : null;
-      },
+function blacklistToRule(rule: BlacklistRule): Rule {
+  return {
+    id: rule.id,
+    category: rule.category,
+    weight: rule.weight,
+    test: (text) => {
+      const lower = text.toLowerCase();
+      const hits = rule.words.filter((w) => lower.includes(w));
+      return hits.length > 0 ? hits.map((w) => ({ fragment: w })) : null;
     },
-  ];
+  };
 }
 
-const RULES: Rule[] = [
+const STATIC_RULES: Rule[] = [
   {
     id: 'many_urls',
     category: ContentRiskCategory.SPAM,
@@ -84,27 +78,6 @@ const RULES: Rule[] = [
       return m ? [{ fragment: m[0] }] : null;
     },
   },
-  ...buildBlacklistRule(
-    'placeholder_toxicity',
-    ContentRiskCategory.TOXICITY,
-    0.3,
-    ['placeholder_toxic_a', 'placeholder_toxic_b', 'placeholder_toxic_c'],
-  ),
-  ...buildBlacklistRule('placeholder_hate', ContentRiskCategory.HATE, 0.5, [
-    'placeholder_hate_a',
-    'placeholder_hate_b',
-  ]),
-  ...buildBlacklistRule('placeholder_threat', ContentRiskCategory.THREAT, 0.7, [
-    'placeholder_threat_a',
-    'placeholder_threat_b',
-    'placeholder_threat_c',
-  ]),
-  ...buildBlacklistRule(
-    'placeholder_self_harm',
-    ContentRiskCategory.SELF_HARM,
-    0.7,
-    ['placeholder_self_harm_a'],
-  ),
 ];
 
 interface RuleBasedInput {
@@ -132,22 +105,25 @@ interface RuleBasedOutput {
 }
 
 @Injectable()
-export class RuleBasedScanStep implements PipelineStep<
-  RuleBasedInput,
-  RuleBasedOutput
-> {
+export class RuleBasedScanStep
+  implements PipelineStep<RuleBasedInput, RuleBasedOutput>
+{
   readonly name = ContentRiskStepName.RUN_RULE_BASED_CHECKS;
+
+  constructor(private readonly rulesProvider: RulesProvider) {}
 
   execute(
     input: RuleBasedInput,
     _ctx: StepContext,
   ): Promise<StepResult<RuleBasedOutput>> {
+    const rules = this.buildRules();
+
     try {
       const matchedRules: MatchedRule[] = [];
       const flaggedFragments: FlaggedFragment[] = [];
       let weightSum = 0;
 
-      for (const rule of RULES) {
+      for (const rule of rules) {
         const fragments = rule.test(input.normalizedText);
         if (fragments && fragments.length > 0) {
           matchedRules.push({
@@ -172,13 +148,13 @@ export class RuleBasedScanStep implements PipelineStep<
           flags,
           matchedRules,
           matchedRulesCount: matchedRules.length,
-          totalRulesChecked: RULES.length,
+          totalRulesChecked: rules.length,
           flaggedFragments,
         },
         details: {
           stepName: ContentRiskStepName.RUN_RULE_BASED_CHECKS,
           matchedRulesCount: matchedRules.length,
-          totalRulesChecked: RULES.length,
+          totalRulesChecked: rules.length,
           flags: flags.map((f) => f.toString()),
           score,
         },
@@ -190,11 +166,18 @@ export class RuleBasedScanStep implements PipelineStep<
         details: {
           stepName: ContentRiskStepName.RUN_RULE_BASED_CHECKS,
           matchedRulesCount: 0,
-          totalRulesChecked: RULES.length,
+          totalRulesChecked: rules.length,
           flags: [],
           score: 0,
         },
       });
     }
+  }
+
+  private buildRules(): Rule[] {
+    return [
+      ...STATIC_RULES,
+      ...this.rulesProvider.getBlacklistRules().map(blacklistToRule),
+    ];
   }
 }

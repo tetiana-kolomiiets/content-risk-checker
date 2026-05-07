@@ -2,6 +2,7 @@ import { ContentRiskCategory } from '../../../../../../domain/content-risk-check
 import { ContentRiskStepName } from '../../../../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
 import { StepContext } from '../../contracts/step-context.type';
 import { RuleBasedScanStep } from '../rule-based-scan.step';
+import { BlacklistRule, RulesProvider } from '../rules.provider';
 
 const ctx: StepContext = {
   checkId: '00000000-0000-4000-8000-000000000001',
@@ -9,11 +10,45 @@ const ctx: StepContext = {
   promptVersionId: '00000000-0000-4000-8000-000000000002',
 };
 
+const TEST_BLACKLIST: BlacklistRule[] = [
+  {
+    id: 'placeholder_toxicity',
+    category: ContentRiskCategory.TOXICITY,
+    weight: 0.3,
+    words: ['placeholder_toxic_a', 'placeholder_toxic_b', 'placeholder_toxic_c'],
+  },
+  {
+    id: 'placeholder_hate',
+    category: ContentRiskCategory.HATE,
+    weight: 0.5,
+    words: ['placeholder_hate_a', 'placeholder_hate_b'],
+  },
+  {
+    id: 'placeholder_threat',
+    category: ContentRiskCategory.THREAT,
+    weight: 0.7,
+    words: [
+      'placeholder_threat_a',
+      'placeholder_threat_b',
+      'placeholder_threat_c',
+    ],
+  },
+  {
+    id: 'placeholder_self_harm',
+    category: ContentRiskCategory.SELF_HARM,
+    weight: 0.7,
+    words: ['placeholder_self_harm_a'],
+  },
+];
+
+const fakeRulesProvider = (rules: BlacklistRule[]): RulesProvider =>
+  ({ getBlacklistRules: () => rules }) as RulesProvider;
+
 describe('RuleBasedScanStep', () => {
   let step: RuleBasedScanStep;
 
   beforeEach(() => {
-    step = new RuleBasedScanStep();
+    step = new RuleBasedScanStep(fakeRulesProvider(TEST_BLACKLIST));
   });
 
   it('returns clean result when no rules match', async () => {

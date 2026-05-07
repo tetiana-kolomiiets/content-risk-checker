@@ -23,6 +23,7 @@ import { NormalizeTextStep } from './pipeline/steps/normalize-text.step';
 import { PersistAiMemoryStep } from './pipeline/steps/persist-ai-memory.step';
 import { RetrieveAiContextStep } from './pipeline/steps/retrieve-ai-context.step';
 import { RuleBasedScanStep } from './pipeline/steps/rule-based-scan.step';
+import { RulesProvider } from './pipeline/steps/rules.provider';
 
 const runWorker = process.env.DISABLE_WORKER !== 'true';
 
@@ -35,6 +36,7 @@ const runWorker = process.env.DISABLE_WORKER !== 'true';
     AnalysisQueue,
     NormalizeTextStep,
     DetectDuplicateStep,
+    RulesProvider,
     RuleBasedScanStep,
     RetrieveAiContextStep,
     AiAnalysisStep,
