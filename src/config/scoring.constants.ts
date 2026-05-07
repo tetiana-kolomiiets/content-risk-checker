@@ -12,7 +12,6 @@ export const RULE_WEIGHTS = {
   THREAT: 0.7,
   SELF_HARM: 0.7,
   HATE: 0.5,
-  HARASSMENT: 0.4,
   SCAM: 0.4,
   TOXICITY: 0.3,
   MANY_URLS: 0.3,

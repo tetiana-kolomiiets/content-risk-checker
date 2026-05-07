@@ -207,7 +207,7 @@ aggregation alongside the AI score.
 What it does:
 
 - Runs structural rules with stable IDs (`many_urls`, `char_repetition`,
-  `excessive_punctuation`, `all_caps`, `suspicious_tld`).
+  `excessive_punctuation`, `suspicious_tld`).
 - Runs blacklist rules loaded at startup from `config/rules/*.json`. Each file
   is one rule (`{ id, category, weight, words[] }`) and is cached in memory by
   `RulesProvider`. Edit the JSON and restart the worker to update wordlists; no

@@ -121,29 +121,6 @@ describe('RuleBasedScanStep', () => {
       expect(rule?.category).toBe(ContentRiskCategory.SPAM);
     });
 
-    it('fires all_caps (HARASSMENT) when over 70% letters uppercase', async () => {
-      const result = await step.execute(
-        { normalizedText: 'STOP YELLING AT ME RIGHT NOW' },
-        ctx,
-      );
-      expect(result.ok).toBe(true);
-      if (!result.ok) return;
-      const rule = result.output.matchedRules.find(
-        (r) => r.ruleId === 'all_caps',
-      );
-      expect(rule).toBeDefined();
-      expect(rule?.category).toBe(ContentRiskCategory.HARASSMENT);
-    });
-
-    it('does NOT fire all_caps for short uppercase strings', async () => {
-      const result = await step.execute({ normalizedText: 'OK!' }, ctx);
-      expect(result.ok).toBe(true);
-      if (!result.ok) return;
-      expect(
-        result.output.matchedRules.find((r) => r.ruleId === 'all_caps'),
-      ).toBeUndefined();
-    });
-
     it('fires suspicious_tld (SCAM) for risky TLDs', async () => {
       const result = await step.execute(
         { normalizedText: 'click http://free-money.zip now' },

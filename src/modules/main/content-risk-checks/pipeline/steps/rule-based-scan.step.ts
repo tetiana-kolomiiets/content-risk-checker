@@ -22,8 +22,7 @@ function blacklistToRule(rule: BlacklistRule): Rule {
     category: rule.category,
     weight: rule.weight,
     test: (text) => {
-      const lower = text.toLowerCase();
-      const hits = rule.words.filter((w) => lower.includes(w));
+      const hits = rule.words.filter((w) => text.includes(w));
       return hits.length > 0 ? hits.map((w) => ({ fragment: w })) : null;
     },
   };
@@ -60,24 +59,11 @@ const STATIC_RULES: Rule[] = [
     },
   },
   {
-    id: 'all_caps',
-    category: ContentRiskCategory.HARASSMENT,
-    weight: RULE_WEIGHTS.HARASSMENT,
-    test: (text) => {
-      const letters = text.replace(/[^a-zA-Zа-яА-Я]/g, '');
-      if (letters.length < 10) return null;
-      const upper = letters.replace(/[^A-ZА-Я]/g, '');
-      return upper.length / letters.length > 0.7
-        ? [{ fragment: text.slice(0, 80) }]
-        : null;
-    },
-  },
-  {
     id: 'suspicious_tld',
     category: ContentRiskCategory.SCAM,
     weight: RULE_WEIGHTS.SCAM,
     test: (text) => {
-      const m = text.match(/https?:\/\/\S+\.(?:tk|zip|click|top|xyz)\b\S*/i);
+      const m = text.match(/https?:\/\/\S+\.(?:tk|zip|click|top|xyz)\b\S*/);
       return m ? [{ fragment: m[0] }] : null;
     },
   },
