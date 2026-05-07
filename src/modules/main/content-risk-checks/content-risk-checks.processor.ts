@@ -67,34 +67,41 @@ export class ContentRiskChecksProcessor
       return;
     }
 
-    await this.checksRepo.update({
-      id: job.data.checkId,
-      status: ContentRiskCheckStatus.FAILED,
-      finishedAt: new Date(),
-      errorMessage: error.message,
-    });
+    return TraceContext.run(job.data.traceId, async () => {
+      const check = await this.checksRepo.getById(job.data.checkId);
+      const failedStep =
+        check?.currentStep ?? ContentRiskStepName.AGGREGATE_RESULT;
 
-    const now = new Date();
-    await this.stepLogsRepo.create({
-      checkId: job.data.checkId,
-      traceId: job.data.traceId,
-      stepName: ContentRiskStepName.AGGREGATE_RESULT,
-      status: StepExecutionStatus.FAILED,
-      attempt: job.attemptsMade,
-      errorMessage: `Pipeline exhausted retries: ${error.message}`,
-      startedAt: now,
-      finishedAt: now,
-      durationMs: 0,
-    });
+      await this.checksRepo.update({
+        id: job.data.checkId,
+        status: ContentRiskCheckStatus.FAILED,
+        finishedAt: new Date(),
+        errorMessage: error.message,
+      });
 
-    this.logger.error(
-      {
+      const now = new Date();
+      await this.stepLogsRepo.create({
         checkId: job.data.checkId,
-        attempts: job.attemptsMade,
-        err: error,
-        code: 'RETRIES_EXHAUSTED',
-      },
-      'Pipeline exhausted retries, check marked FAILED',
-    );
+        traceId: job.data.traceId,
+        stepName: failedStep,
+        status: StepExecutionStatus.FAILED,
+        attempt: job.attemptsMade,
+        errorMessage: `Pipeline exhausted retries: ${error.message}`,
+        startedAt: now,
+        finishedAt: now,
+        durationMs: 0,
+      });
+
+      this.logger.error(
+        {
+          checkId: job.data.checkId,
+          attempts: job.attemptsMade,
+          err: error,
+          code: 'RETRIES_EXHAUSTED',
+          failedStep,
+        },
+        'Pipeline exhausted retries, check marked FAILED',
+      );
+    });
   }
 }

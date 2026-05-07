@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { EnvConfig } from '../../../../../config/env.schema';
 import { ContentRiskStepName } from '../../../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
-import { AiFewShotExample } from '../../../../../domain/content-risk-checks/types/ai-few-shot-example.type';
+import { AiFewShotExample } from '../../../../../domain/content-risk-checks/schemas/ai-few-shot-example.schema';
 import {
   EMBEDDING_CLIENT,
   EmbeddingClient,

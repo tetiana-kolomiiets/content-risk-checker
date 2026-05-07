@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../generated/prisma/client';
 import { ContentRiskCategory } from '../../../domain/content-risk-checks/enums/content-risk-category.enum';
 import { ContentRiskLevel } from '../../../domain/content-risk-checks/enums/content-risk-level.enum';
-import { AiFewShotExample } from '../../../domain/content-risk-checks/types/ai-few-shot-example.type';
+import { AiFewShotExample } from '../../../domain/content-risk-checks/schemas/ai-few-shot-example.schema';
 import {
   AiAnalysisMemoryRepository,
   CreateAiAnalysisMemoryInput,

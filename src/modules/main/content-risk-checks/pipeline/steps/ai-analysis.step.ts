@@ -6,7 +6,7 @@ import {
   AiAnalysisOutput,
   AiAnalysisOutputSchema,
 } from '../../../../../domain/content-risk-checks/schemas/ai-output.schema';
-import { AiFewShotExample } from '../../../../../domain/content-risk-checks/types/ai-few-shot-example.type';
+import { AiFewShotExample } from '../../../../../domain/content-risk-checks/schemas/ai-few-shot-example.schema';
 import { Prompt } from '../../../../../domain/content-risk-checks/types/prompt.type';
 import {
   LLM_CLIENT,
