@@ -43,7 +43,7 @@ function App() {
       }
 
       lastErrorToastAtRef.current = now;
-      if (error instanceof Error && error.message === 'Network error') {
+      if (error.message === 'Network error') {
         toast({ variant: 'error', message: 'Network error. Check your connection and try again.' });
         return;
       }

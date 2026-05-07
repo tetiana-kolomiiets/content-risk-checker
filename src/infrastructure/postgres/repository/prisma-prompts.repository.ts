@@ -10,7 +10,7 @@ import {
 } from './repository-error-messages';
 import { RepositoryError } from './repository-error';
 
-const CACHE_TTL_MS = 60_000;
+const CACHE_TTL_MS = 10_000;
 
 @Injectable()
 export class PrismaPromptsRepository implements PromptsRepository {

@@ -649,7 +649,11 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
       status: ContentRiskCheckStatus.COMPLETED,
     });
     checksRepo.findActiveByContentHash.mockResolvedValue(winnerCheck);
-    analysisResultsRepo.getByCheckId.mockResolvedValue(winnerResult);
+    // First call (top-of-run idempotency check) → no prior result.
+    // Second call (race-fallback inside finalizeCompleted) → winner result.
+    analysisResultsRepo.getByCheckId
+      .mockResolvedValueOnce(null)
+      .mockResolvedValue(winnerResult);
 
     // Sequence of checksRepo.update calls:
     //   1. set PROCESSING (loadAndPrepareCheck)
@@ -694,5 +698,101 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
         c[0].duplicateOfCheckId === WINNER_ID,
     );
     expect(refinalize).toBeDefined();
+  });
+
+  it('retry idempotency: two consecutive run() invocations call aiAnalysis.execute exactly once', async () => {
+    let checkStatus: ContentRiskCheckStatus = ContentRiskCheckStatus.PENDING;
+    let storedResult: ContentRiskAnalysisResult | null = null;
+
+    checksRepo.getById.mockImplementation(() =>
+      Promise.resolve(buildCheck({ status: checkStatus })),
+    );
+    type UpdateInput = Parameters<ContentRiskChecksRepository['update']>[0];
+    checksRepo.update.mockImplementation((data: UpdateInput) => {
+      if (data.status) checkStatus = data.status;
+      return Promise.resolve(buildCheck({ status: checkStatus, ...data }));
+    });
+
+    analysisResultsRepo.getByCheckId.mockImplementation(() =>
+      Promise.resolve(storedResult),
+    );
+    analysisResultsRepo.create.mockImplementation((data) => {
+      const created = buildAnalysisResult({ checkId: data.checkId });
+      storedResult = created;
+      return Promise.resolve(created);
+    });
+
+    normalize.execute.mockResolvedValue(
+      ok({ normalizedText: 'hello world' }, normalizeDetails),
+    );
+    detectDuplicate.execute.mockResolvedValue(
+      ok(
+        { duplicateOfCheckId: null, finalAnalysisResult: null },
+        dedupeDetails(null),
+      ),
+    );
+    ruleBasedScan.execute.mockResolvedValue(
+      ok(
+        {
+          score: 0,
+          flags: [],
+          matchedRules: [],
+          matchedRulesCount: 0,
+          totalRulesChecked: 9,
+          flaggedFragments: [],
+        },
+        ruleDetails,
+      ),
+    );
+    retrieveAiContext.execute.mockResolvedValue(
+      ok(
+        {
+          examples: [],
+          embedding: [0.1, 0.2, 0.3],
+          embeddingModel: 'openai/text-embedding-3-small',
+        },
+        retrieveDetails,
+      ),
+    );
+    aiAnalysis.execute.mockResolvedValue(
+      ok(
+        {
+          finalLevel: ContentRiskLevel.LOW,
+          categories: [],
+          score: 0,
+          rationale: 'safe',
+          flaggedFragments: [],
+        },
+        aiDetails,
+      ),
+    );
+    aggregate.execute.mockResolvedValue(
+      ok(
+        {
+          finalRiskLevel: ContentRiskLevel.LOW,
+          categories: [],
+          matchedRulesCount: 0,
+          totalRulesChecked: 9,
+          flaggedFragments: [],
+          matchedRules: [],
+          summary: 'safe',
+        },
+        aggDetails,
+      ),
+    );
+    persistAiMemory.execute.mockResolvedValue(
+      ok({ persisted: true }, persistMemoryDetails),
+    );
+
+    await runner.run(CHECK_ID, TRACE_ID);
+    await runner.run(CHECK_ID, TRACE_ID);
+
+    expect(aiAnalysis.execute).toHaveBeenCalledTimes(1);
+    expect(normalize.execute).toHaveBeenCalledTimes(1);
+    expect(ruleBasedScan.execute).toHaveBeenCalledTimes(1);
+    expect(retrieveAiContext.execute).toHaveBeenCalledTimes(1);
+    expect(aggregate.execute).toHaveBeenCalledTimes(1);
+    expect(persistAiMemory.execute).toHaveBeenCalledTimes(1);
+    expect(analysisResultsRepo.create).toHaveBeenCalledTimes(1);
   });
 });

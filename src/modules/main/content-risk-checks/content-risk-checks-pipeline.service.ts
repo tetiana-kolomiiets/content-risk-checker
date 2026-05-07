@@ -52,6 +52,31 @@ export class ContentRiskChecksPipelineService {
 
   async run(checkId: string, traceId: string): Promise<void> {
     const check = await this.loadAndPrepareCheck(checkId);
+
+    if (check.status === ContentRiskCheckStatus.COMPLETED) {
+      this.logger.info(
+        { checkId },
+        'Check already finalized, retry treated as no-op',
+      );
+      return;
+    }
+
+    const existingResult = await this.analysisResultsRepo.getByCheckId(checkId);
+    if (existingResult) {
+      this.logger.info(
+        { checkId },
+        'Analysis result exists from prior attempt, fast-path to finalize',
+      );
+      await this.finalizeCompleted(
+        checkId,
+        check.contentHash,
+        check.promptVersionId!,
+        check.duplicateOfCheckId,
+        check.duplicateOfCheckId === null,
+      );
+      return;
+    }
+
     const ctx: StepContext = {
       checkId,
       traceId,
@@ -254,6 +279,9 @@ export class ContentRiskChecksPipelineService {
     const check = await this.checksRepo.getById(checkId);
     if (!check) {
       throw new Error(`Check ${checkId} not found`);
+    }
+    if (check.status === ContentRiskCheckStatus.COMPLETED) {
+      return check;
     }
     if (
       check.status !== ContentRiskCheckStatus.PENDING &&
