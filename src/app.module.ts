@@ -18,24 +18,23 @@ import { ContentRiskChecksModule } from './modules/main/content-risk-checks/cont
 import { HealthModule } from './modules/main/health/health.module';
 import { PromptsModule } from './modules/main/prompts/prompts.module';
 
-const SECRET_KEY_PATTERN = /(key|token|password)/i;
-
-const redactSecretsByName = (
-  value: unknown,
-  seen: WeakSet<object> = new WeakSet(),
-): unknown => {
-  if (value === null || typeof value !== 'object') return value;
-  if (seen.has(value)) return '[Circular]';
-  seen.add(value);
-  if (Array.isArray(value))
-    return value.map((v) => redactSecretsByName(v, seen));
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-    out[k] = SECRET_KEY_PATTERN.test(k)
-      ? '[Redacted]'
-      : redactSecretsByName(v, seen);
-  }
-  return out;
+export const LOGGER_REDACT_OPTIONS = {
+  paths: [
+    '*.apiKey',
+    '*.api_key',
+    '*.password',
+    '*.token',
+    '*.secret',
+    '*.credential',
+    '*.authorization',
+    '*.bearer',
+    'OPENROUTER_API_KEY',
+    'DATABASE_URL',
+    'req.headers.authorization',
+    'req.headers.cookie',
+    'req.headers["x-api-key"]',
+  ],
+  censor: '[Redacted]',
 };
 
 @Module({
@@ -50,25 +49,7 @@ const redactSecretsByName = (
             ? { target: 'pino-pretty', options: { singleLine: true } }
             : undefined,
           customProps: () => ({ traceId: TraceContext.get() }),
-          formatters: {
-            log: (obj) => redactSecretsByName(obj) as Record<string, unknown>,
-          },
-          redact: {
-            paths: [
-              'apiKey',
-              'api_key',
-              'API_KEY',
-              'OPENROUTER_API_KEY',
-              '*.apiKey',
-              '*.api_key',
-              '*.password',
-              '*.token',
-              '*.OPENROUTER_API_KEY',
-              'req.headers.authorization',
-              'req.headers.cookie',
-            ],
-            remove: true,
-          },
+          redact: LOGGER_REDACT_OPTIONS,
           serializers: {
             req: pino.stdSerializers.req,
             res: pino.stdSerializers.res,
