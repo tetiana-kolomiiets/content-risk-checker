@@ -34,6 +34,8 @@ export const envSchema = z.object({
 
   THROTTLE_TTL_MS: z.coerce.number().int().positive().default(60000),
   THROTTLE_LIMIT: z.coerce.number().int().positive().default(10),
+
+  CORS_ORIGINS: z.string().default('http://localhost:5173'),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

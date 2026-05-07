@@ -100,7 +100,6 @@ export class DetectDuplicateStep implements PipelineStep<
         stepName: ContentRiskStepName.DETECT_DUPLICATE,
         duplicateOfCheckId: found.id,
       },
-      skipRemaining: true,
     };
   }
 

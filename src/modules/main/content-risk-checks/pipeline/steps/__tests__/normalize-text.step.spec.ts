@@ -38,10 +38,7 @@ describe('NormalizeTextStep', () => {
   });
 
   it('preserves Unicode letters (cyrillic, accents, emoji)', async () => {
-    const result = await step.execute(
-      { rawText: 'Привіт café 🚀 Naïve' },
-      ctx,
-    );
+    const result = await step.execute({ rawText: 'Привіт café 🚀 Naïve' }, ctx);
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -49,10 +46,7 @@ describe('NormalizeTextStep', () => {
   });
 
   it('lowercases mixed-case input', async () => {
-    const result = await step.execute(
-      { rawText: 'HELLO World MiXeD' },
-      ctx,
-    );
+    const result = await step.execute({ rawText: 'HELLO World MiXeD' }, ctx);
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;

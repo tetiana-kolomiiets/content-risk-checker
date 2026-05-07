@@ -99,19 +99,11 @@ const makeStep = <I, O>(name: ContentRiskStepName): StubStep<I, O> => ({
   execute: jest.fn(),
 });
 
-const ok = <O>(
-  output: O,
-  details: unknown,
-  skipRemaining = false,
-): StepResult<O> =>
-  skipRemaining
-    ? {
-        ok: true,
-        output,
-        details: details as never,
-        skipRemaining: true,
-      }
-    : { ok: true, output, details: details as never };
+const ok = <O>(output: O, details: unknown): StepResult<O> => ({
+  ok: true,
+  output,
+  details: details as never,
+});
 
 const fail = <O>(
   code: string,
@@ -485,7 +477,6 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
           finalAnalysisResult: winnerResult,
         },
         dedupeDetails(WINNER_ID),
-        true,
       ),
     );
 

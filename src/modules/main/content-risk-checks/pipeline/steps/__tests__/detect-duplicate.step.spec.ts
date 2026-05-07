@@ -23,7 +23,9 @@ const ctx: StepContext = {
 
 const input = { contentHash: 'hash-1', selfId: SELF_ID };
 
-const buildCheck = (overrides: Partial<ContentRiskCheck> = {}): ContentRiskCheck => ({
+const buildCheck = (
+  overrides: Partial<ContentRiskCheck> = {},
+): ContentRiskCheck => ({
   id: OTHER_ID,
   requestId: 'req-1',
   traceId: 'trace-other',
@@ -94,7 +96,6 @@ describe('DetectDuplicateStep', () => {
     expect(result.output.duplicateOfCheckId).toBeNull();
     expect(result.output.copiedAnalysisResultId).toBeNull();
     expect(result.output.finalAnalysisResult).toBeNull();
-    expect(result.skipRemaining).toBeUndefined();
     expect(analysisResultsRepo.create).not.toHaveBeenCalled();
   });
 
@@ -122,7 +123,7 @@ describe('DetectDuplicateStep', () => {
     );
   });
 
-  it('copies winner analysisResult fields and signals skipRemaining when duplicate found', async () => {
+  it('copies winner analysisResult fields when duplicate found', async () => {
     checksRepo.findActiveByContentHash.mockResolvedValue(buildCheck());
     const sourceResult = buildAnalysisResult();
     analysisResultsRepo.getByCheckId.mockResolvedValue(sourceResult);
@@ -139,7 +140,6 @@ describe('DetectDuplicateStep', () => {
     expect(result.output.duplicateOfCheckId).toBe(OTHER_ID);
     expect(result.output.copiedAnalysisResultId).toBe('copied-res');
     expect(result.output.finalAnalysisResult).toBe(sourceResult);
-    expect(result.skipRemaining).toBe(true);
     expect(result.details).toMatchObject({
       stepName: ContentRiskStepName.DETECT_DUPLICATE,
       duplicateOfCheckId: OTHER_ID,

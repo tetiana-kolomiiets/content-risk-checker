@@ -3,13 +3,13 @@
 ## Overview
 
 Backend service that analyzes text for content risk (toxicity, spam, hate speech, etc.)
-using a deterministic 5-step pipeline. AI signal source is Anthropic Claude
+using a deterministic 6-step pipeline. AI signal source is Anthropic Claude
 accessed through **OpenRouter** as the LLM gateway.
 
 ## Architecture
 
 ```
-HTTP → Controller → Service → Queue → Worker → PipelineRunner → 5 steps → DB
+HTTP → Controller → Service → Queue → Worker → PipelineRunner → 6 steps → DB
 ```
 
 The six pipeline steps run in fixed order: `NORMALIZE_TEXT` →
@@ -209,6 +209,19 @@ Known limitations:
   - **pgvector wins on:** indexed nearest-neighbour search (sub-linear at scale), cosine operator (`<=>`) in SQL so retrieval stays in the repository layer, and constant memory (no need to load every row into Node per check).
   - **`Float[]` would have won on:** zero infra dependency (works on stock Postgres), trivial local dev. The cost is O(N) full-scan + O(N·D) JS math per check — acceptable at a few-thousand rows but not beyond.
   - **Why pgvector here:** memory grows monotonically with traffic and replays, and we want retrieval latency bounded by an index, not by row count. The cost is one Postgres extension (`CREATE EXTENSION IF NOT EXISTS vector` in migration `20260505100000_enable_pgvector`) and a Postgres image that ships pgvector. The current `docker-compose.yml` uses stock `postgres:15`, so for that image to apply migrations it must either be swapped for `pgvector/pgvector:pg15` (or similar) or have the extension installed in the running container.
+- **Language detection is not a separate step.** The LLM (Claude) handles multilingual input natively, and the rule-based heuristics support both Latin and Cyrillic alphabets. A dedicated language step would duplicate work the LLM already performs.
+
+## Statuses
+
+The `ContentRiskCheckStatus` enum has four values: `PENDING`, `PROCESSING`,
+`COMPLETED`, `FAILED`. Two statuses sometimes seen in similar systems are
+intentionally absent:
+
+- `REJECTED` would duplicate the HTTP 400 path — DTO validation rejects bad
+  input before a row is ever written to the database, so a `REJECTED` row would
+  never exist.
+- `CANCELLED` is out of scope for the MVP — there is no user-facing cancel
+  action, and aborting an in-flight pipeline is not a supported use case.
 
 ## Known Limitations (MVP)
 

@@ -29,7 +29,6 @@ export const FAILED_TO_GET_PROMPT_BY_ID = 'Failed to get prompt by id';
 
 export const FAILED_TO_FIND_SIMILAR_AI_MEMORIES =
   'Failed to find similar AI analysis memories';
-export const FAILED_TO_CREATE_AI_MEMORY =
-  'Failed to create AI analysis memory';
+export const FAILED_TO_CREATE_AI_MEMORY = 'Failed to create AI analysis memory';
 export const AI_MEMORY_DUPLICATE_CHECK_ID =
   'AI analysis memory already exists for this check id';

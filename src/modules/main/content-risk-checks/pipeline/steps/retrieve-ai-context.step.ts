@@ -28,9 +28,10 @@ interface RetrieveContextOutput {
 }
 
 @Injectable()
-export class RetrieveAiContextStep
-  implements PipelineStep<RetrieveContextInput, RetrieveContextOutput>
-{
+export class RetrieveAiContextStep implements PipelineStep<
+  RetrieveContextInput,
+  RetrieveContextOutput
+> {
   readonly name = ContentRiskStepName.RETRIEVE_AI_CONTEXT;
 
   constructor(

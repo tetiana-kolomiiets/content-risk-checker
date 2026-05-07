@@ -18,11 +18,18 @@ import { ContentRiskChecksModule } from './modules/main/content-risk-checks/cont
 import { HealthModule } from './modules/main/health/health.module';
 import { PromptsModule } from './modules/main/prompts/prompts.module';
 
-// Known limitations (acceptable for MVP, documented in README):
-// - Rate limiting is in-memory (per-process); multi-instance deployments may exceed effective limit
-// - Prompt cache is per-process with 60s TTL; activation may take up to 60s to propagate across workers
-// - Worker process can be separated (npm run start:worker) but default dev mode runs HTTP+worker in one process
-// - LLM gateway is OpenRouter; switching to direct provider requires only swapping LlmClient adapter
+const SECRET_KEY_PATTERN = /(key|token|password)/i;
+
+const redactSecretsByName = (value: unknown): unknown => {
+  if (value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map(redactSecretsByName);
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    out[k] = SECRET_KEY_PATTERN.test(k) ? '[Redacted]' : redactSecretsByName(v);
+  }
+  return out;
+};
+
 @Module({
   imports: [
     ConfigModule,
@@ -35,10 +42,19 @@ import { PromptsModule } from './modules/main/prompts/prompts.module';
             ? { target: 'pino-pretty', options: { singleLine: true } }
             : undefined,
           customProps: () => ({ traceId: TraceContext.get() }),
+          formatters: {
+            log: (obj) => redactSecretsByName(obj) as Record<string, unknown>,
+          },
           redact: {
             paths: [
+              'apiKey',
+              'api_key',
+              'API_KEY',
+              'OPENROUTER_API_KEY',
               '*.apiKey',
+              '*.api_key',
               '*.password',
+              '*.token',
               '*.OPENROUTER_API_KEY',
               'req.headers.authorization',
               'req.headers.cookie',

@@ -17,7 +17,10 @@ describe('RuleBasedScanStep', () => {
   });
 
   it('returns clean result when no rules match', async () => {
-    const result = await step.execute({ normalizedText: 'a quiet sentence' }, ctx);
+    const result = await step.execute(
+      { normalizedText: 'a quiet sentence' },
+      ctx,
+    );
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -41,7 +44,9 @@ describe('RuleBasedScanStep', () => {
 
       expect(result.ok).toBe(true);
       if (!result.ok) return;
-      const rule = result.output.matchedRules.find((r) => r.ruleId === 'many_urls');
+      const rule = result.output.matchedRules.find(
+        (r) => r.ruleId === 'many_urls',
+      );
       expect(rule).toBeDefined();
       expect(rule?.category).toBe(ContentRiskCategory.SPAM);
       expect(rule?.fragments.length).toBeGreaterThan(0);
@@ -54,14 +59,18 @@ describe('RuleBasedScanStep', () => {
       );
       expect(result.ok).toBe(true);
       if (!result.ok) return;
-      expect(result.output.matchedRules.find((r) => r.ruleId === 'many_urls')).toBeUndefined();
+      expect(
+        result.output.matchedRules.find((r) => r.ruleId === 'many_urls'),
+      ).toBeUndefined();
     });
 
     it('fires char_repetition (SPAM) for 5+ repeated characters', async () => {
       const result = await step.execute({ normalizedText: 'aaaaa hello' }, ctx);
       expect(result.ok).toBe(true);
       if (!result.ok) return;
-      const rule = result.output.matchedRules.find((r) => r.ruleId === 'char_repetition');
+      const rule = result.output.matchedRules.find(
+        (r) => r.ruleId === 'char_repetition',
+      );
       expect(rule).toBeDefined();
       expect(rule?.category).toBe(ContentRiskCategory.SPAM);
     });
@@ -84,7 +93,9 @@ describe('RuleBasedScanStep', () => {
       );
       expect(result.ok).toBe(true);
       if (!result.ok) return;
-      const rule = result.output.matchedRules.find((r) => r.ruleId === 'all_caps');
+      const rule = result.output.matchedRules.find(
+        (r) => r.ruleId === 'all_caps',
+      );
       expect(rule).toBeDefined();
       expect(rule?.category).toBe(ContentRiskCategory.HARASSMENT);
     });
@@ -93,7 +104,9 @@ describe('RuleBasedScanStep', () => {
       const result = await step.execute({ normalizedText: 'OK!' }, ctx);
       expect(result.ok).toBe(true);
       if (!result.ok) return;
-      expect(result.output.matchedRules.find((r) => r.ruleId === 'all_caps')).toBeUndefined();
+      expect(
+        result.output.matchedRules.find((r) => r.ruleId === 'all_caps'),
+      ).toBeUndefined();
     });
 
     it('fires suspicious_tld (SCAM) for risky TLDs', async () => {
@@ -211,7 +224,9 @@ describe('RuleBasedScanStep', () => {
         (r) => r.category === ContentRiskCategory.SPAM,
       );
       expect(spamHits.length).toBeGreaterThanOrEqual(2);
-      expect(result.output.flags.filter((f) => f === ContentRiskCategory.SPAM)).toHaveLength(1);
+      expect(
+        result.output.flags.filter((f) => f === ContentRiskCategory.SPAM),
+      ).toHaveLength(1);
     });
 
     it('combines rule weights correctly when below 1', async () => {
@@ -228,10 +243,7 @@ describe('RuleBasedScanStep', () => {
 
   describe('flaggedFragments structure', () => {
     it('emits {text, reason} fragments where reason is the rule id', async () => {
-      const result = await step.execute(
-        { normalizedText: 'aaaaa hello' },
-        ctx,
-      );
+      const result = await step.execute({ normalizedText: 'aaaaa hello' }, ctx);
       expect(result.ok).toBe(true);
       if (!result.ok) return;
       expect(result.output.flaggedFragments.length).toBeGreaterThan(0);
@@ -242,7 +254,9 @@ describe('RuleBasedScanStep', () => {
         expect(f.reason.length).toBeGreaterThan(0);
       }
       expect(
-        result.output.flaggedFragments.some((f) => f.reason === 'char_repetition'),
+        result.output.flaggedFragments.some(
+          (f) => f.reason === 'char_repetition',
+        ),
       ).toBe(true);
     });
   });

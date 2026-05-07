@@ -10,16 +10,23 @@ import type { EnvConfig } from './config/env.schema';
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   configureHttpApp(app);
+
+  const config = app.get<ConfigService<EnvConfig, true>>(ConfigService);
+  const logger = app.get(Logger);
+
+  const origins = config
+    .get('CORS_ORIGINS', { infer: true })
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: ['http://localhost:5173'],
+    origin: origins,
     credentials: false,
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type', 'X-Trace-Id'],
     exposedHeaders: ['X-Trace-Id'],
   });
-
-  const config = app.get<ConfigService<EnvConfig, true>>(ConfigService);
-  const logger = app.get(Logger);
 
   await app.listen(config.get('PORT', { infer: true }));
   logger.log('API process started (worker disabled)');

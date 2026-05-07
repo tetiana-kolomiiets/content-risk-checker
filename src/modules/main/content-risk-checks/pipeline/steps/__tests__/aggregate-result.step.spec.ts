@@ -10,18 +10,20 @@ const ctx: StepContext = {
   promptVersionId: '00000000-0000-4000-8000-000000000002',
 };
 
-const buildRuleResult = (overrides: Partial<{
-  score: number;
-  flags: ContentRiskCategory[];
-  matchedRules: Array<{
-    ruleId: string;
-    category: ContentRiskCategory;
-    fragments: Array<{ fragment: string }>;
-  }>;
-  matchedRulesCount: number;
-  totalRulesChecked: number;
-  flaggedFragments: Array<{ text: string; reason: string }>;
-}> = {}) => ({
+const buildRuleResult = (
+  overrides: Partial<{
+    score: number;
+    flags: ContentRiskCategory[];
+    matchedRules: Array<{
+      ruleId: string;
+      category: ContentRiskCategory;
+      fragments: Array<{ fragment: string }>;
+    }>;
+    matchedRulesCount: number;
+    totalRulesChecked: number;
+    flaggedFragments: Array<{ text: string; reason: string }>;
+  }> = {},
+) => ({
   score: 0,
   flags: [],
   matchedRules: [],
@@ -31,7 +33,9 @@ const buildRuleResult = (overrides: Partial<{
   ...overrides,
 });
 
-const buildAiResult = (overrides: Partial<AiAnalysisOutput> = {}): AiAnalysisOutput => ({
+const buildAiResult = (
+  overrides: Partial<AiAnalysisOutput> = {},
+): AiAnalysisOutput => ({
   finalLevel: ContentRiskLevel.LOW,
   categories: [],
   score: 0,
@@ -83,7 +87,10 @@ describe('AggregateResultStep', () => {
     const result = await step.execute(
       {
         ruleResult: buildRuleResult({ score: 0.2 }),
-        aiResult: buildAiResult({ score: 0.2, finalLevel: ContentRiskLevel.LOW }),
+        aiResult: buildAiResult({
+          score: 0.2,
+          finalLevel: ContentRiskLevel.LOW,
+        }),
       },
       ctx,
     );
@@ -96,7 +103,10 @@ describe('AggregateResultStep', () => {
     const result = await step.execute(
       {
         ruleResult: buildRuleResult({ score: 0.5 }),
-        aiResult: buildAiResult({ score: 0.5, finalLevel: ContentRiskLevel.LOW }),
+        aiResult: buildAiResult({
+          score: 0.5,
+          finalLevel: ContentRiskLevel.LOW,
+        }),
       },
       ctx,
     );
@@ -109,7 +119,10 @@ describe('AggregateResultStep', () => {
     const result = await step.execute(
       {
         ruleResult: buildRuleResult({ score: 0.9 }),
-        aiResult: buildAiResult({ score: 0.9, finalLevel: ContentRiskLevel.LOW }),
+        aiResult: buildAiResult({
+          score: 0.9,
+          finalLevel: ContentRiskLevel.LOW,
+        }),
       },
       ctx,
     );
@@ -123,7 +136,10 @@ describe('AggregateResultStep', () => {
     const result = await step.execute(
       {
         ruleResult: buildRuleResult({ score: 0 }),
-        aiResult: buildAiResult({ score: 0.1, finalLevel: ContentRiskLevel.HIGH }),
+        aiResult: buildAiResult({
+          score: 0.1,
+          finalLevel: ContentRiskLevel.HIGH,
+        }),
       },
       ctx,
     );
