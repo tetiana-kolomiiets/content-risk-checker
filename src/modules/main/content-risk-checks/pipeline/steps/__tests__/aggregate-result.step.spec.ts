@@ -1,6 +1,8 @@
 import { ContentRiskCategory } from '../../../../../../domain/content-risk-checks/enums/content-risk-category.enum';
 import { ContentRiskLevel } from '../../../../../../domain/content-risk-checks/enums/content-risk-level.enum';
 import { AiAnalysisOutput } from '../../../../../../domain/content-risk-checks/schemas/ai-output.schema';
+import { FlaggedFragment } from '../../../../../../domain/content-risk-checks/schemas/flagged-fragment.schema';
+import { MatchedRule } from '../../../../../../domain/content-risk-checks/schemas/matched-rule.schema';
 import { StepContext } from '../../contracts/step-context.type';
 import { AggregateResultStep } from '../aggregate-result.step';
 
@@ -14,22 +16,18 @@ const buildRuleResult = (
   overrides: Partial<{
     score: number;
     flags: ContentRiskCategory[];
-    matchedRules: Array<{
-      ruleId: string;
-      category: ContentRiskCategory;
-      fragments: Array<{ fragment: string }>;
-    }>;
+    matchedRules: MatchedRule[];
     matchedRulesCount: number;
     totalRulesChecked: number;
-    flaggedFragments: Array<{ text: string; reason: string }>;
+    flaggedFragments: FlaggedFragment[];
   }> = {},
 ) => ({
   score: 0,
-  flags: [],
-  matchedRules: [],
+  flags: [] as ContentRiskCategory[],
+  matchedRules: [] as MatchedRule[],
   matchedRulesCount: 0,
   totalRulesChecked: 9,
-  flaggedFragments: [],
+  flaggedFragments: [] as FlaggedFragment[],
   ...overrides,
 });
 

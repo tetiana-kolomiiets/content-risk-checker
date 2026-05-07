@@ -1,6 +1,7 @@
+import { FlaggedFragment } from '../schemas/flagged-fragment.schema';
+import { MatchedRule } from '../schemas/matched-rule.schema';
 import { ContentRiskCategory } from '../enums/content-risk-category.enum';
 import { ContentRiskLevel } from '../enums/content-risk-level.enum';
-import { RuleBasedCheckResult } from './rule-based-check-result.type';
 
 export type ContentRiskAnalysisResult = {
   id: string;
@@ -9,8 +10,8 @@ export type ContentRiskAnalysisResult = {
   categories: ContentRiskCategory[];
   matchedRulesCount: number;
   totalRulesChecked: number;
-  flaggedFragments: unknown;
-  matchedRules: RuleBasedCheckResult[];
+  flaggedFragments: FlaggedFragment[];
+  matchedRules: MatchedRule[];
   summary: string | null;
   createdAt: Date;
   updatedAt: Date;

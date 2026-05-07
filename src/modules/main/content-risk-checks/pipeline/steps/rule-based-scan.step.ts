@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ContentRiskCategory } from '../../../../../domain/content-risk-checks/enums/content-risk-category.enum';
 import { ContentRiskStepName } from '../../../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
+import { FlaggedFragment } from '../../../../../domain/content-risk-checks/schemas/flagged-fragment.schema';
+import { MatchedRule } from '../../../../../domain/content-risk-checks/schemas/matched-rule.schema';
 import { PipelineStep } from '../contracts/pipeline-step.interface';
 import { StepContext } from '../contracts/step-context.type';
 import { StepResult } from '../contracts/step-result.type';
@@ -82,17 +84,6 @@ const STATIC_RULES: Rule[] = [
 
 interface RuleBasedInput {
   normalizedText: string;
-}
-
-interface MatchedRule {
-  ruleId: string;
-  category: ContentRiskCategory;
-  fragments: Array<{ fragment: string }>;
-}
-
-interface FlaggedFragment {
-  text: string;
-  reason: string;
 }
 
 interface RuleBasedOutput {

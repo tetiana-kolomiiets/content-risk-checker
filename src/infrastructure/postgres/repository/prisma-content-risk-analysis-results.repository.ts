@@ -2,6 +2,14 @@ import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../../../../generated/prisma/client';
 import { ContentRiskCategory } from '../../../domain/content-risk-checks/enums/content-risk-category.enum';
 import { ContentRiskLevel } from '../../../domain/content-risk-checks/enums/content-risk-level.enum';
+import {
+  FlaggedFragment,
+  FlaggedFragmentSchema,
+} from '../../../domain/content-risk-checks/schemas/flagged-fragment.schema';
+import {
+  MatchedRule,
+  MatchedRuleSchema,
+} from '../../../domain/content-risk-checks/schemas/matched-rule.schema';
 import { ContentRiskAnalysisResultsRepository } from '../ports/content-risk-analysis-results.repository';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -22,10 +30,15 @@ export class PrismaContentRiskAnalysisResultsRepository implements ContentRiskAn
     categories: ContentRiskCategory[];
     matchedRulesCount: number;
     totalRulesChecked: number;
-    flaggedFragments: unknown;
-    matchedRules: unknown;
+    flaggedFragments: FlaggedFragment[];
+    matchedRules: MatchedRule[];
     summary?: string | null;
   }) {
+    const flaggedFragments = FlaggedFragmentSchema.array().parse(
+      data.flaggedFragments,
+    );
+    const matchedRules = MatchedRuleSchema.array().parse(data.matchedRules);
+
     try {
       const row = await this.prismaService.contentRiskAnalysisResult.create({
         data: {
@@ -34,8 +47,8 @@ export class PrismaContentRiskAnalysisResultsRepository implements ContentRiskAn
           categories: data.categories,
           matchedRulesCount: data.matchedRulesCount,
           totalRulesChecked: data.totalRulesChecked,
-          flaggedFragments: data.flaggedFragments as Prisma.InputJsonValue,
-          matchedRules: data.matchedRules as Prisma.InputJsonValue,
+          flaggedFragments: flaggedFragments as Prisma.InputJsonValue,
+          matchedRules: matchedRules as Prisma.InputJsonValue,
           summary: data.summary,
         },
       });

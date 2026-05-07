@@ -1,6 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ContentRiskCategory } from '../../../../domain/content-risk-checks/enums/content-risk-category.enum';
 import { ContentRiskLevel } from '../../../../domain/content-risk-checks/enums/content-risk-level.enum';
+import { FlaggedFragmentDto } from './flagged-fragment.dto';
+import { MatchedRuleDto } from './matched-rule.dto';
 
 export class ContentRiskAnalysisResultDto {
   @ApiProperty()
@@ -21,11 +23,11 @@ export class ContentRiskAnalysisResultDto {
   @ApiProperty()
   totalRulesChecked: number;
 
-  @ApiProperty({ type: Object })
-  flaggedFragments: unknown;
+  @ApiProperty({ type: () => FlaggedFragmentDto, isArray: true })
+  flaggedFragments: FlaggedFragmentDto[];
 
-  @ApiProperty({ type: Object })
-  matchedRules: unknown;
+  @ApiProperty({ type: () => MatchedRuleDto, isArray: true })
+  matchedRules: MatchedRuleDto[];
 
   @ApiProperty({ required: false, nullable: true })
   summary?: string | null;

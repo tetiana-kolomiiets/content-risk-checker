@@ -3,20 +3,11 @@ import { ContentRiskCategory } from '../../../../../domain/content-risk-checks/e
 import { ContentRiskLevel } from '../../../../../domain/content-risk-checks/enums/content-risk-level.enum';
 import { ContentRiskStepName } from '../../../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
 import { AiAnalysisOutput } from '../../../../../domain/content-risk-checks/schemas/ai-output.schema';
+import { FlaggedFragment } from '../../../../../domain/content-risk-checks/schemas/flagged-fragment.schema';
+import { MatchedRule } from '../../../../../domain/content-risk-checks/schemas/matched-rule.schema';
 import { PipelineStep } from '../contracts/pipeline-step.interface';
 import { StepContext } from '../contracts/step-context.type';
 import { StepResult } from '../contracts/step-result.type';
-
-interface MatchedRule {
-  ruleId: string;
-  category: ContentRiskCategory;
-  fragments: Array<{ fragment: string }>;
-}
-
-interface FlaggedFragment {
-  text: string;
-  reason: string;
-}
 
 interface AggregateInput {
   ruleResult: {
@@ -36,7 +27,7 @@ interface AggregatedAnalysisResult {
   matchedRulesCount: number;
   totalRulesChecked: number;
   flaggedFragments: FlaggedFragment[];
-  matchedRules: unknown;
+  matchedRules: MatchedRule[];
   summary: string;
 }
 
