@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
@@ -26,6 +27,7 @@ interface CheckShape {
   status: ContentRiskCheckStatus;
   retryCount: number;
   replayOfCheckId?: string | null;
+  duplicateOfCheckId?: string | null;
   analysisResult?: {
     finalRiskLevel: string;
     categories: string[];
@@ -303,5 +305,43 @@ describe('Content risk checks (e2e)', () => {
       where: { id: replayId },
     });
     expect(replayRow?.promptVersionId).toBe(newPrompt.id);
+  });
+
+  it('race fallback: 5 concurrent POSTs same text → 1 canonical COMPLETED, 4 with duplicateOfCheckId, 5 analysisResult rows', async () => {
+    const text = 'race-condition-test-text-' + randomUUID();
+
+    const responses = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        request(server).post('/api/v1/content-risk-checks').send({ text }),
+      ),
+    );
+
+    const ids = responses.map(
+      (r) => (r.body as ApiEnvelope<CheckShape>).data.id,
+    );
+    expect(new Set(ids).size).toBe(5);
+
+    const finals = await Promise.all(
+      ids.map((id) => pollUntilFinal(request(server), id)),
+    );
+
+    finals.forEach((f) =>
+      expect(f.data.status).toBe(ContentRiskCheckStatus.COMPLETED),
+    );
+
+    const canonical = finals.filter((f) => !f.data.duplicateOfCheckId);
+    expect(canonical).toHaveLength(1);
+
+    const duplicates = finals.filter((f) => f.data.duplicateOfCheckId);
+    expect(duplicates).toHaveLength(4);
+    duplicates.forEach((d) =>
+      expect(d.data.duplicateOfCheckId).toBe(canonical[0]!.data.id),
+    );
+
+    const results = await prisma.contentRiskAnalysisResult.findMany({
+      where: { checkId: { in: ids } },
+    });
+    expect(results).toHaveLength(5);
+    expect(new Set(results.map((r) => r.summary)).size).toBe(1);
   });
 });

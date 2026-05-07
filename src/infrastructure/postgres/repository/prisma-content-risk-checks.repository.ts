@@ -99,6 +99,7 @@ export class PrismaContentRiskChecksRepository implements ContentRiskChecksRepos
     retryCount?: number;
     promptVersionId?: string | null;
     replayOfCheckId?: string | null;
+    duplicateOfCheckId?: string | null;
     startedAt?: Date | null;
     finishedAt?: Date | null;
   }) {
@@ -113,6 +114,7 @@ export class PrismaContentRiskChecksRepository implements ContentRiskChecksRepos
           retryCount: data.retryCount,
           promptVersionId: data.promptVersionId,
           replayOfCheckId: data.replayOfCheckId,
+          duplicateOfCheckId: data.duplicateOfCheckId,
           startedAt: data.startedAt,
           finishedAt: data.finishedAt,
         },

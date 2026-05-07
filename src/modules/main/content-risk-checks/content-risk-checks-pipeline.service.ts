@@ -191,7 +191,7 @@ export class ContentRiskChecksPipelineService {
         status: ContentRiskCheckStatus.COMPLETED,
         currentStep: null,
         finishedAt: new Date(),
-        replayOfCheckId: duplicateOfCheckId,
+        duplicateOfCheckId,
       });
       if (finalized instanceof Error) {
         throw new PipelineFailedError(
@@ -272,7 +272,7 @@ export class ContentRiskChecksPipelineService {
       status: ContentRiskCheckStatus.COMPLETED,
       currentStep: null,
       finishedAt: new Date(),
-      replayOfCheckId: winner.id,
+      duplicateOfCheckId: winner.id,
     });
     if (refinalized instanceof Error) {
       throw new PipelineFailedError(

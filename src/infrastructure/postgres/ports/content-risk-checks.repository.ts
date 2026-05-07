@@ -33,6 +33,7 @@ export interface ContentRiskChecksRepository {
     retryCount?: number;
     promptVersionId?: string | null;
     replayOfCheckId?: string | null;
+    duplicateOfCheckId?: string | null;
     startedAt?: Date | null;
     finishedAt?: Date | null;
   }): Promise<ContentRiskCheck | Error>;

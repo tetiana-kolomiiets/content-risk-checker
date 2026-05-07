@@ -15,6 +15,9 @@ export function MetadataPanel({ check }: { check: Check }) {
       {check.replayOfCheckId && (
         <Row label="Replay of" value={check.replayOfCheckId} mono linkTo={`/checks/${check.replayOfCheckId}`} />
       )}
+      {check.duplicateOfCheckId && (
+        <Row label="Duplicate of" value={check.duplicateOfCheckId} mono linkTo={`/checks/${check.duplicateOfCheckId}`} />
+      )}
     </div>
   );
 }

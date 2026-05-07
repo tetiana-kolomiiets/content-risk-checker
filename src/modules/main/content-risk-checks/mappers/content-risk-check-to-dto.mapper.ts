@@ -35,6 +35,7 @@ export const contentRiskCheckToDto = (
     retryCount: contentRiskCheck.retryCount,
     maxRetries: contentRiskCheck.maxRetries,
     replayOfCheckId: contentRiskCheck.replayOfCheckId,
+    duplicateOfCheckId: contentRiskCheck.duplicateOfCheckId,
     startedAt: contentRiskCheck.startedAt,
     finishedAt: contentRiskCheck.finishedAt,
     createdAt: contentRiskCheck.createdAt,

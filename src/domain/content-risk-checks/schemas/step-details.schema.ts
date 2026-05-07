@@ -10,7 +10,7 @@ export const StepDetailsSchema = z.discriminatedUnion('stepName', [
   }),
   z.object({
     stepName: z.literal(ContentRiskStepName.DETECT_DUPLICATE),
-    duplicateOfCheckId: z.string().uuid().nullable(),
+    duplicateOfCheckId: z.string().nullable(),
   }),
   z.object({
     stepName: z.literal(ContentRiskStepName.RUN_RULE_BASED_CHECKS),

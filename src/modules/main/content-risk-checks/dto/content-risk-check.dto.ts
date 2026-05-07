@@ -42,6 +42,9 @@ export class ContentRiskCheckDto {
   replayOfCheckId?: string | null;
 
   @ApiProperty({ required: false, nullable: true })
+  duplicateOfCheckId?: string | null;
+
+  @ApiProperty({ required: false, nullable: true })
   startedAt?: Date | null;
 
   @ApiProperty({ required: false, nullable: true })

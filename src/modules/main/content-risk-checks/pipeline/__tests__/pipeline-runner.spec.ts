@@ -45,6 +45,7 @@ const buildCheck = (
   retryCount: 0,
   maxRetries: 3,
   replayOfCheckId: null,
+  duplicateOfCheckId: null,
   promptVersionId: PROMPT_ID,
   startedAt: null,
   finishedAt: null,
@@ -376,7 +377,7 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
       expect.objectContaining({
         id: CHECK_ID,
         status: ContentRiskCheckStatus.COMPLETED,
-        replayOfCheckId: null,
+        duplicateOfCheckId: null,
       }),
     );
 
@@ -463,7 +464,7 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
     expect(failedCall?.[1].errorMessage).toContain('AI_VALIDATION_FAILED');
   });
 
-  it('DetectDuplicate skip path: rule/ai/aggregate/persist steps NOT called, runner copies winner result, COMPLETED with replayOfCheckId', async () => {
+  it('DetectDuplicate skip path: rule/ai/aggregate/persist steps NOT called, runner copies winner result, COMPLETED with duplicateOfCheckId', async () => {
     checksRepo.getById.mockResolvedValue(buildCheck());
     checksRepo.update.mockResolvedValue(buildCheck());
 
@@ -520,7 +521,7 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
       expect.objectContaining({
         id: CHECK_ID,
         status: ContentRiskCheckStatus.COMPLETED,
-        replayOfCheckId: WINNER_ID,
+        duplicateOfCheckId: WINNER_ID,
       }),
     );
   });
@@ -565,7 +566,7 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
     expect(persistAiMemory.execute).not.toHaveBeenCalled();
   });
 
-  it('race fallback: P2002 on finalize → copy winner result, set replayOfCheckId to winner', async () => {
+  it('race fallback: P2002 on finalize → copy winner result, set duplicateOfCheckId to winner', async () => {
     checksRepo.getById.mockResolvedValue(buildCheck());
 
     normalize.execute.mockResolvedValue(
@@ -654,7 +655,7 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
     //   1. set PROCESSING (loadAndPrepareCheck)
     //   2..8. currentStep updates per step (7 steps)
     //   9. final finalize → throw P2002
-    //   10. refinalize with replayOfCheckId = winner.id
+    //   10. refinalize with duplicateOfCheckId = winner.id
     let updateCount = 0;
     type UpdateInput = Parameters<ContentRiskChecksRepository['update']>[0];
     checksRepo.update.mockImplementation((data: UpdateInput) => {
@@ -684,11 +685,11 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
       }),
     );
 
-    // Final state: COMPLETED with replayOfCheckId pointing at winner.
+    // Final state: COMPLETED with duplicateOfCheckId pointing at winner.
     const refinalize = checksRepo.update.mock.calls.find(
       (c) =>
         c[0].status === ContentRiskCheckStatus.COMPLETED &&
-        c[0].replayOfCheckId === WINNER_ID,
+        c[0].duplicateOfCheckId === WINNER_ID,
     );
     expect(refinalize).toBeDefined();
   });

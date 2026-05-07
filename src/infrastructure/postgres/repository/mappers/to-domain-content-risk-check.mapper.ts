@@ -21,6 +21,7 @@ export const toDomainContentRiskCheck = (
     retryCount: row.retryCount,
     maxRetries: row.maxRetries,
     replayOfCheckId: row.replayOfCheckId ?? null,
+    duplicateOfCheckId: row.duplicateOfCheckId ?? null,
     promptVersionId: row.promptVersionId ?? null,
     startedAt: row.startedAt ?? null,
     finishedAt: row.finishedAt ?? null,

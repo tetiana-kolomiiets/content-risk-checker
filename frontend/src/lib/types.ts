@@ -54,6 +54,7 @@ export interface Check {
   traceId: string;
   promptVersionId: string | null;
   replayOfCheckId: string | null;
+  duplicateOfCheckId: string | null;
   retryCount: number;
   maxRetries: number;
   sourceType: SourceType;

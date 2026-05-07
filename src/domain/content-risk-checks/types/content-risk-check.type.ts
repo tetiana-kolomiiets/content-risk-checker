@@ -16,6 +16,7 @@ export type ContentRiskCheck = {
   retryCount: number;
   maxRetries: number;
   replayOfCheckId: string | null;
+  duplicateOfCheckId: string | null;
   promptVersionId: string | null;
   startedAt: Date | null;
   finishedAt: Date | null;

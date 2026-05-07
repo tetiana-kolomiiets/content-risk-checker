@@ -39,6 +39,7 @@ const buildCheck = (
   retryCount: 0,
   maxRetries: 3,
   replayOfCheckId: null,
+  duplicateOfCheckId: null,
   promptVersionId: PROMPT_ID,
   startedAt: new Date('2024-01-01T00:00:00Z'),
   finishedAt: new Date('2024-01-01T00:00:01Z'),

@@ -66,6 +66,7 @@ model ContentRiskCheck {
   retryCount      Int                    @default(0)
   maxRetries      Int                    @default(3)
   replayOfCheckId String?
+  duplicateOfCheckId String?
   promptVersionId String?
   startedAt       DateTime?
   finishedAt      DateTime?
@@ -79,6 +80,9 @@ model ContentRiskCheck {
   replayOfCheck  ContentRiskCheck?  @relation("ContentRiskCheckReplay", fields: [replayOfCheckId], references: [id], onDelete: SetNull)
   replayedChecks ContentRiskCheck[] @relation("ContentRiskCheckReplay")
 
+  duplicateOfCheck   ContentRiskCheck?  @relation("ContentRiskCheckDuplicate", fields: [duplicateOfCheckId], references: [id], onDelete: SetNull)
+  duplicatesFromThis ContentRiskCheck[] @relation("ContentRiskCheckDuplicate")
+
   promptVersion Prompt? @relation(fields: [promptVersionId], references: [id])
 
   @@index([requestId])
@@ -87,6 +91,7 @@ model ContentRiskCheck {
   @@index([status])
   @@index([status, currentStep])
   @@index([replayOfCheckId])
+  @@index([duplicateOfCheckId])
 }
 
 model ContentRiskAnalysisResult {
