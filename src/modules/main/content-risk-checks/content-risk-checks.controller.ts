@@ -37,8 +37,9 @@ export class ContentRiskChecksController {
   @ApiNotFoundResponse({ description: 'Check not found' })
   async getOne(
     @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: GetContentRiskCheckDto,
   ): Promise<ContentRiskCheckDto> {
-    return this.service.getCheckById(id);
+    return this.service.getCheckById(id, query);
   }
 
   @Get()

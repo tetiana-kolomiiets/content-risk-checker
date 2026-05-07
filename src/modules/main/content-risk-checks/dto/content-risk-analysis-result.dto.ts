@@ -32,9 +32,9 @@ export class ContentRiskAnalysisResultDto {
   @ApiProperty({ required: false, nullable: true })
   summary?: string | null;
 
-  @ApiProperty()
-  createdAt: Date;
+  @ApiProperty({ format: 'date-time' })
+  createdAt: string;
 
-  @ApiProperty()
-  updatedAt: Date;
+  @ApiProperty({ format: 'date-time' })
+  updatedAt: string;
 }

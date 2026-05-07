@@ -9,9 +9,6 @@ export class ContentRiskStepLogDto {
   @ApiProperty()
   checkId: string;
 
-  @ApiProperty()
-  traceId: string;
-
   @ApiProperty({ enum: ContentRiskStepName })
   stepName: ContentRiskStepName;
 
@@ -30,15 +27,15 @@ export class ContentRiskStepLogDto {
   @ApiProperty({ required: false, type: Object })
   details?: unknown;
 
-  @ApiProperty()
-  startedAt: Date;
+  @ApiProperty({ format: 'date-time' })
+  startedAt: string;
 
-  @ApiProperty({ required: false, nullable: true })
-  finishedAt?: Date | null;
+  @ApiProperty({ required: false, nullable: true, format: 'date-time' })
+  finishedAt?: string | null;
 
   @ApiProperty({ required: false, nullable: true })
   durationMs?: number | null;
 
-  @ApiProperty()
-  createdAt: Date;
+  @ApiProperty({ format: 'date-time' })
+  createdAt: string;
 }

@@ -23,8 +23,8 @@ export class ContentRiskCheckDto {
   @ApiProperty()
   contentHash: string;
 
-  @ApiProperty()
-  rawText: string;
+  @ApiProperty({ required: false })
+  rawText?: string;
 
   @ApiProperty({ required: false, nullable: true })
   normalizedText?: string | null;
@@ -44,17 +44,17 @@ export class ContentRiskCheckDto {
   @ApiProperty({ required: false, nullable: true })
   duplicateOfCheckId?: string | null;
 
-  @ApiProperty({ required: false, nullable: true })
-  startedAt?: Date | null;
+  @ApiProperty({ required: false, nullable: true, format: 'date-time' })
+  startedAt?: string | null;
 
-  @ApiProperty({ required: false, nullable: true })
-  finishedAt?: Date | null;
+  @ApiProperty({ required: false, nullable: true, format: 'date-time' })
+  finishedAt?: string | null;
 
-  @ApiProperty()
-  createdAt: Date;
+  @ApiProperty({ format: 'date-time' })
+  createdAt: string;
 
-  @ApiProperty()
-  updatedAt: Date;
+  @ApiProperty({ format: 'date-time' })
+  updatedAt: string;
 
   @ApiProperty({
     required: false,

@@ -14,7 +14,7 @@ export const contentRiskAnalysisResultToDto = (
     flaggedFragments: analysisResult.flaggedFragments,
     matchedRules: analysisResult.matchedRules,
     summary: analysisResult.summary,
-    createdAt: analysisResult.createdAt,
-    updatedAt: analysisResult.updatedAt,
+    createdAt: analysisResult.createdAt.toISOString(),
+    updatedAt: analysisResult.updatedAt.toISOString(),
   };
 };

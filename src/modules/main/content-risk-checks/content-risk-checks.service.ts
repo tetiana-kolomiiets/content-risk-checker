@@ -28,10 +28,17 @@ import {
 import { AnalysisQueue } from './analysis.queue';
 import { ContentRiskCheckDto } from './dto/content-risk-check.dto';
 import { ContentRiskStepLogDto } from './dto/content-risk-step-log.dto';
-import { GetContentRiskCheckDto } from './dto/get-content-risk-check.dto';
+import {
+  ContentRiskCheckIncludeField,
+  GetContentRiskCheckDto,
+} from './dto/get-content-risk-check.dto';
 import { GetContentRiskChecksOutputDto } from './dto/get-content-risk-checks-output.dto';
 import { contentRiskCheckToDto } from './mappers/content-risk-check-to-dto.mapper';
 import { contentRiskStepLogToDto } from './mappers/content-risk-step-log-to-dto.mapper';
+
+const hasRawTextInclude = (
+  include: ContentRiskCheckIncludeField[] | undefined,
+): boolean => include?.includes(ContentRiskCheckIncludeField.RAW_TEXT) ?? false;
 
 const ACTIVE_PROMPT_NAME = 'content-risk-analysis';
 const DEFAULT_MAX_RETRIES = 3;
@@ -159,7 +166,10 @@ export class ContentRiskChecksService {
     return contentRiskCheckToDto(newCheck);
   }
 
-  async getCheckById(id: string): Promise<ContentRiskCheckDto> {
+  async getCheckById(
+    id: string,
+    query: GetContentRiskCheckDto = {},
+  ): Promise<ContentRiskCheckDto> {
     const check = await this.checksRepo.getById(id);
 
     if (check === null) {
@@ -170,15 +180,22 @@ export class ContentRiskChecksService {
       check.id,
     );
 
-    return contentRiskCheckToDto(check, analysisResult);
+    return contentRiskCheckToDto(check, analysisResult, {
+      includeRawText: hasRawTextInclude(query.include),
+    });
   }
 
   async getChecks(
     query: GetContentRiskCheckDto,
   ): Promise<GetContentRiskChecksOutputDto> {
     const checks = await this.checksRepo.getMany(query.status);
+    const includeRawText = hasRawTextInclude(query.include);
 
-    return { items: checks.map((check) => contentRiskCheckToDto(check)) };
+    return {
+      items: checks.map((check) =>
+        contentRiskCheckToDto(check, undefined, { includeRawText }),
+      ),
+    };
   }
 
   async getStepLogs(checkId: string): Promise<ContentRiskStepLogDto[]> {

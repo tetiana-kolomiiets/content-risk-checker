@@ -1,26 +1,16 @@
 import { ContentRiskAnalysisResult } from '../../../../domain/content-risk-checks/types/content-risk-analysis-result.type';
 import { ContentRiskCheck } from '../../../../domain/content-risk-checks/types/content-risk-check.type';
-import { ContentRiskAnalysisResultDto } from '../dto/content-risk-analysis-result.dto';
 import { ContentRiskCheckDto } from '../dto/content-risk-check.dto';
 import { contentRiskAnalysisResultToDto } from './content-risk-analysis-result-to-dto.mapper';
 
-const mapAnalysisResult = (
-  analysisResult?: ContentRiskAnalysisResult | null,
-): ContentRiskAnalysisResultDto | null | undefined => {
-  if (analysisResult === undefined) {
-    return undefined;
-  }
-
-  if (analysisResult === null) {
-    return null;
-  }
-
-  return contentRiskAnalysisResultToDto(analysisResult);
+type Options = {
+  includeRawText?: boolean;
 };
 
 export const contentRiskCheckToDto = (
   contentRiskCheck: ContentRiskCheck,
   analysisResult?: ContentRiskAnalysisResult | null,
+  options: Options = {},
 ): ContentRiskCheckDto => {
   return {
     id: contentRiskCheck.id,
@@ -29,17 +19,23 @@ export const contentRiskCheckToDto = (
     status: contentRiskCheck.status,
     currentStep: contentRiskCheck.currentStep,
     contentHash: contentRiskCheck.contentHash,
-    rawText: contentRiskCheck.rawText,
+    ...(options.includeRawText ? { rawText: contentRiskCheck.rawText } : {}),
     normalizedText: contentRiskCheck.normalizedText,
     errorMessage: contentRiskCheck.errorMessage,
     retryCount: contentRiskCheck.retryCount,
     maxRetries: contentRiskCheck.maxRetries,
     replayOfCheckId: contentRiskCheck.replayOfCheckId,
     duplicateOfCheckId: contentRiskCheck.duplicateOfCheckId,
-    startedAt: contentRiskCheck.startedAt,
-    finishedAt: contentRiskCheck.finishedAt,
-    createdAt: contentRiskCheck.createdAt,
-    updatedAt: contentRiskCheck.updatedAt,
-    analysisResult: mapAnalysisResult(analysisResult),
+    startedAt: contentRiskCheck.startedAt
+      ? contentRiskCheck.startedAt.toISOString()
+      : null,
+    finishedAt: contentRiskCheck.finishedAt
+      ? contentRiskCheck.finishedAt.toISOString()
+      : null,
+    createdAt: contentRiskCheck.createdAt.toISOString(),
+    updatedAt: contentRiskCheck.updatedAt.toISOString(),
+    analysisResult: analysisResult
+      ? contentRiskAnalysisResultToDto(analysisResult)
+      : analysisResult,
   };
 };

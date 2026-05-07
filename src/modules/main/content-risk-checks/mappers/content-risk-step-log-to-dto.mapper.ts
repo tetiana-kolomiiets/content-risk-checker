@@ -7,16 +7,15 @@ export const contentRiskStepLogToDto = (
   return {
     id: stepLog.id,
     checkId: stepLog.checkId,
-    traceId: stepLog.traceId,
     stepName: stepLog.stepName,
     status: stepLog.status,
     attempt: stepLog.attempt,
     message: stepLog.message,
     errorMessage: stepLog.errorMessage,
     details: stepLog.details,
-    startedAt: stepLog.startedAt,
-    finishedAt: stepLog.finishedAt,
+    startedAt: stepLog.startedAt.toISOString(),
+    finishedAt: stepLog.finishedAt ? stepLog.finishedAt.toISOString() : null,
     durationMs: stepLog.durationMs,
-    createdAt: stepLog.createdAt,
+    createdAt: stepLog.createdAt.toISOString(),
   };
 };
