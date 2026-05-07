@@ -1,3 +1,9 @@
+import {
+  AI_SCORE_WEIGHT,
+  HIGH_RISK_THRESHOLD,
+  MEDIUM_RISK_THRESHOLD,
+  RULE_SCORE_WEIGHT,
+} from '../../../../../../config/scoring.constants';
 import { ContentRiskCategory } from '../../../../../../domain/content-risk-checks/enums/content-risk-category.enum';
 import { ContentRiskLevel } from '../../../../../../domain/content-risk-checks/enums/content-risk-level.enum';
 import { AiAnalysisOutput } from '../../../../../../domain/content-risk-checks/schemas/ai-output.schema';
@@ -49,11 +55,13 @@ describe('AggregateResultStep', () => {
     step = new AggregateResultStep();
   });
 
-  it('combines scores as 0.4 * ruleScore + 0.6 * aiScore', async () => {
+  it('combines scores as RULE_SCORE_WEIGHT * ruleScore + AI_SCORE_WEIGHT * aiScore', async () => {
+    const ruleScore = 0.5;
+    const aiScore = 0.5;
     const result = await step.execute(
       {
-        ruleResult: buildRuleResult({ score: 0.5 }),
-        aiResult: buildAiResult({ score: 0.5 }),
+        ruleResult: buildRuleResult({ score: ruleScore }),
+        aiResult: buildAiResult({ score: aiScore }),
       },
       ctx,
     );
@@ -61,9 +69,9 @@ describe('AggregateResultStep', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.details).toMatchObject({
-      ruleScore: 0.5,
-      aiScore: 0.5,
-      finalScore: 0.5,
+      ruleScore,
+      aiScore,
+      finalScore: RULE_SCORE_WEIGHT * ruleScore + AI_SCORE_WEIGHT * aiScore,
     });
   });
 
@@ -77,16 +85,18 @@ describe('AggregateResultStep', () => {
     );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    // 0.4 * 1 + 0.6 * 0 = 0.4
-    expect(result.details).toMatchObject({ finalScore: 0.4 });
+    // RULE_SCORE_WEIGHT * 1 + AI_SCORE_WEIGHT * 0 = RULE_SCORE_WEIGHT
+    expect(result.details).toMatchObject({ finalScore: RULE_SCORE_WEIGHT });
+    expect(AI_SCORE_WEIGHT).toBeGreaterThan(RULE_SCORE_WEIGHT);
   });
 
-  it('derives LOW when finalScore < 0.34', async () => {
+  it('derives LOW when finalScore < MEDIUM_RISK_THRESHOLD', async () => {
+    const score = MEDIUM_RISK_THRESHOLD / 2;
     const result = await step.execute(
       {
-        ruleResult: buildRuleResult({ score: 0.2 }),
+        ruleResult: buildRuleResult({ score }),
         aiResult: buildAiResult({
-          score: 0.2,
+          score,
           finalLevel: ContentRiskLevel.LOW,
         }),
       },
@@ -97,12 +107,13 @@ describe('AggregateResultStep', () => {
     expect(result.output.finalRiskLevel).toBe(ContentRiskLevel.LOW);
   });
 
-  it('derives MEDIUM when finalScore is in [0.34, 0.67)', async () => {
+  it('derives MEDIUM when finalScore is in [MEDIUM_RISK_THRESHOLD, HIGH_RISK_THRESHOLD)', async () => {
+    const score = (MEDIUM_RISK_THRESHOLD + HIGH_RISK_THRESHOLD) / 2;
     const result = await step.execute(
       {
-        ruleResult: buildRuleResult({ score: 0.5 }),
+        ruleResult: buildRuleResult({ score }),
         aiResult: buildAiResult({
-          score: 0.5,
+          score,
           finalLevel: ContentRiskLevel.LOW,
         }),
       },
@@ -113,12 +124,13 @@ describe('AggregateResultStep', () => {
     expect(result.output.finalRiskLevel).toBe(ContentRiskLevel.MEDIUM);
   });
 
-  it('derives HIGH when finalScore >= 0.67', async () => {
+  it('derives HIGH when finalScore >= HIGH_RISK_THRESHOLD', async () => {
+    const score = (HIGH_RISK_THRESHOLD + 1) / 2;
     const result = await step.execute(
       {
-        ruleResult: buildRuleResult({ score: 0.9 }),
+        ruleResult: buildRuleResult({ score }),
         aiResult: buildAiResult({
-          score: 0.9,
+          score,
           finalLevel: ContentRiskLevel.LOW,
         }),
       },

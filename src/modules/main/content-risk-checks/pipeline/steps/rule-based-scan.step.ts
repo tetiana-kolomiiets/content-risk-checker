@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { RULE_WEIGHTS } from '../../../../../config/scoring.constants';
 import { ContentRiskCategory } from '../../../../../domain/content-risk-checks/enums/content-risk-category.enum';
 import { ContentRiskStepName } from '../../../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
 import { FlaggedFragment } from '../../../../../domain/content-risk-checks/schemas/flagged-fragment.schema';
@@ -32,7 +33,7 @@ const STATIC_RULES: Rule[] = [
   {
     id: 'many_urls',
     category: ContentRiskCategory.SPAM,
-    weight: 0.3,
+    weight: RULE_WEIGHTS.MANY_URLS,
     test: (text) => {
       const matches = [...text.matchAll(/https?:\/\/\S+/g)];
       return matches.length > 2
@@ -43,7 +44,7 @@ const STATIC_RULES: Rule[] = [
   {
     id: 'char_repetition',
     category: ContentRiskCategory.SPAM,
-    weight: 0.2,
+    weight: RULE_WEIGHTS.CHAR_REPETITION,
     test: (text) => {
       const m = text.match(/(.)\1{4,}/);
       return m ? [{ fragment: m[0] }] : null;
@@ -52,7 +53,7 @@ const STATIC_RULES: Rule[] = [
   {
     id: 'excessive_punctuation',
     category: ContentRiskCategory.SPAM,
-    weight: 0.1,
+    weight: RULE_WEIGHTS.EXCESSIVE_PUNCTUATION,
     test: (text) => {
       const m = text.match(/[!?]{3,}/);
       return m ? [{ fragment: m[0] }] : null;
@@ -61,7 +62,7 @@ const STATIC_RULES: Rule[] = [
   {
     id: 'all_caps',
     category: ContentRiskCategory.HARASSMENT,
-    weight: 0.4,
+    weight: RULE_WEIGHTS.HARASSMENT,
     test: (text) => {
       const letters = text.replace(/[^a-zA-Zа-яА-Я]/g, '');
       if (letters.length < 10) return null;
@@ -74,7 +75,7 @@ const STATIC_RULES: Rule[] = [
   {
     id: 'suspicious_tld',
     category: ContentRiskCategory.SCAM,
-    weight: 0.4,
+    weight: RULE_WEIGHTS.SCAM,
     test: (text) => {
       const m = text.match(/https?:\/\/\S+\.(?:tk|zip|click|top|xyz)\b\S*/i);
       return m ? [{ fragment: m[0] }] : null;

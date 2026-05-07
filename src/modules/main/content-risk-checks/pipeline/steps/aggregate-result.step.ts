@@ -1,4 +1,10 @@
 import { Injectable } from '@nestjs/common';
+import {
+  AI_SCORE_WEIGHT,
+  HIGH_RISK_THRESHOLD,
+  MEDIUM_RISK_THRESHOLD,
+  RULE_SCORE_WEIGHT,
+} from '../../../../../config/scoring.constants';
 import { ContentRiskCategory } from '../../../../../domain/content-risk-checks/enums/content-risk-category.enum';
 import { ContentRiskLevel } from '../../../../../domain/content-risk-checks/enums/content-risk-level.enum';
 import { ContentRiskStepName } from '../../../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
@@ -51,12 +57,12 @@ export class AggregateResultStep implements PipelineStep<
     try {
       const ruleScore = input.ruleResult.score;
       const aiScore = input.aiResult.score;
-      const finalScore = 0.4 * ruleScore + 0.6 * aiScore;
+      const finalScore = RULE_SCORE_WEIGHT * ruleScore + AI_SCORE_WEIGHT * aiScore;
 
       const thresholdLevel: ContentRiskLevel =
-        finalScore < 0.34
+        finalScore < MEDIUM_RISK_THRESHOLD
           ? ContentRiskLevel.LOW
-          : finalScore < 0.67
+          : finalScore < HIGH_RISK_THRESHOLD
             ? ContentRiskLevel.MEDIUM
             : ContentRiskLevel.HIGH;
 
