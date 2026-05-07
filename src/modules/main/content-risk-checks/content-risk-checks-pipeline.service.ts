@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
-import { isPrismaUniqueConstraintError } from '../../../common/utils/prisma-errors';
 import { ContentRiskCheckStatus } from '../../../domain/content-risk-checks/enums/content-risk-check-status.enum';
 import { ContentRiskStepName } from '../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
 import { StepExecutionStatus } from '../../../domain/content-risk-checks/enums/step-execution-status.enum';
@@ -17,6 +16,7 @@ import {
   CONTENT_RISK_STEP_LOGS_REPOSITORY,
   ContentRiskStepLogsRepository,
 } from '../../../infrastructure/postgres/ports/content-risk-step-logs.repository';
+import { UniqueConstraintError } from '../../../infrastructure/postgres/repository/repository-error';
 import { PipelineFailedError } from './pipeline/contracts/pipeline-error';
 import { PipelineStep } from './pipeline/contracts/pipeline-step.interface';
 import { StepContext } from './pipeline/contracts/step-context.type';
@@ -77,22 +77,23 @@ export class ContentRiskChecksPipelineService {
 
     if (!ranOwnAnalysis) {
       const winner = dedupeOutput.finalAnalysisResult!;
-      const copied = await this.analysisResultsRepo.create({
-        checkId,
-        finalRiskLevel: winner.finalRiskLevel,
-        categories: winner.categories,
-        matchedRulesCount: winner.matchedRulesCount,
-        totalRulesChecked: winner.totalRulesChecked,
-        flaggedFragments: winner.flaggedFragments,
-        matchedRules: winner.matchedRules,
-        summary: winner.summary,
-      });
-      if (copied instanceof Error) {
+      try {
+        await this.analysisResultsRepo.create({
+          checkId,
+          finalRiskLevel: winner.finalRiskLevel,
+          categories: winner.categories,
+          matchedRulesCount: winner.matchedRulesCount,
+          totalRulesChecked: winner.totalRulesChecked,
+          flaggedFragments: winner.flaggedFragments,
+          matchedRules: winner.matchedRules,
+          summary: winner.summary,
+        });
+      } catch (err) {
         throw new PipelineFailedError(
           ContentRiskStepName.DETECT_DUPLICATE,
           'COPY_RESULT_FAILED',
-          copied.message,
-          copied,
+          (err as Error).message,
+          err,
         );
       }
       this.logger.info(
@@ -132,22 +133,23 @@ export class ContentRiskChecksPipelineService {
         attempt,
       );
 
-      const created = await this.analysisResultsRepo.create({
-        checkId,
-        finalRiskLevel: aggregatedOutput.finalRiskLevel,
-        categories: aggregatedOutput.categories,
-        matchedRulesCount: aggregatedOutput.matchedRulesCount,
-        totalRulesChecked: aggregatedOutput.totalRulesChecked,
-        flaggedFragments: aggregatedOutput.flaggedFragments,
-        matchedRules: aggregatedOutput.matchedRules,
-        summary: aggregatedOutput.summary,
-      });
-      if (created instanceof Error) {
+      try {
+        await this.analysisResultsRepo.create({
+          checkId,
+          finalRiskLevel: aggregatedOutput.finalRiskLevel,
+          categories: aggregatedOutput.categories,
+          matchedRulesCount: aggregatedOutput.matchedRulesCount,
+          totalRulesChecked: aggregatedOutput.totalRulesChecked,
+          flaggedFragments: aggregatedOutput.flaggedFragments,
+          matchedRules: aggregatedOutput.matchedRules,
+          summary: aggregatedOutput.summary,
+        });
+      } catch (err) {
         throw new PipelineFailedError(
           ContentRiskStepName.AGGREGATE_RESULT,
           'PERSIST_RESULT_FAILED',
-          created.message,
-          created,
+          (err as Error).message,
+          err,
         );
       }
 
@@ -186,50 +188,33 @@ export class ContentRiskChecksPipelineService {
     ranOwnAnalysis: boolean,
   ): Promise<void> {
     try {
-      const finalized = await this.checksRepo.update({
+      await this.checksRepo.update({
         id: checkId,
         status: ContentRiskCheckStatus.COMPLETED,
         currentStep: null,
         finishedAt: new Date(),
         duplicateOfCheckId,
       });
-      if (finalized instanceof Error) {
-        throw new PipelineFailedError(
-          ContentRiskStepName.AGGREGATE_RESULT,
-          'FINALIZE_FAILED',
-          finalized.message,
-          finalized,
-        );
-      }
       return;
     } catch (err) {
-      if (!isPrismaUniqueConstraintError(err)) throw err;
+      if (!(err instanceof UniqueConstraintError)) throw err;
     }
 
     // Race lost: another concurrent pipeline finalized first. Adopt its result.
-    const winnerLookup = await this.checksRepo.findActiveByContentHash(
+    const winner = await this.checksRepo.findActiveByContentHash(
       contentHash,
       promptVersionId,
     );
-    if (winnerLookup instanceof Error) {
-      throw new PipelineFailedError(
-        ContentRiskStepName.AGGREGATE_RESULT,
-        'FINALIZE_RACE_LOOKUP_FAILED',
-        winnerLookup.message,
-        winnerLookup,
-      );
-    }
-    if (!winnerLookup || winnerLookup.id === checkId) {
+    if (!winner || winner.id === checkId) {
       throw new PipelineFailedError(
         ContentRiskStepName.AGGREGATE_RESULT,
         'FINALIZE_RACE_NO_WINNER',
         'P2002 raised but no winning check found',
       );
     }
-    const winner = winnerLookup;
 
     const winnerResult = await this.analysisResultsRepo.getByCheckId(winner.id);
-    if (winnerResult instanceof Error || !winnerResult) {
+    if (!winnerResult) {
       throw new PipelineFailedError(
         ContentRiskStepName.AGGREGATE_RESULT,
         'FINALIZE_RACE_WINNER_RESULT_MISSING',
@@ -238,16 +223,8 @@ export class ContentRiskChecksPipelineService {
     }
 
     if (ranOwnAnalysis) {
-      const deleted = await this.analysisResultsRepo.delete(checkId);
-      if (deleted instanceof Error) {
-        throw new PipelineFailedError(
-          ContentRiskStepName.AGGREGATE_RESULT,
-          'FINALIZE_RACE_DELETE_FAILED',
-          deleted.message,
-          deleted,
-        );
-      }
-      const copied = await this.analysisResultsRepo.create({
+      await this.analysisResultsRepo.delete(checkId);
+      await this.analysisResultsRepo.create({
         checkId,
         finalRiskLevel: winnerResult.finalRiskLevel,
         categories: winnerResult.categories,
@@ -257,31 +234,15 @@ export class ContentRiskChecksPipelineService {
         matchedRules: winnerResult.matchedRules,
         summary: winnerResult.summary,
       });
-      if (copied instanceof Error) {
-        throw new PipelineFailedError(
-          ContentRiskStepName.AGGREGATE_RESULT,
-          'FINALIZE_RACE_COPY_FAILED',
-          copied.message,
-          copied,
-        );
-      }
     }
 
-    const refinalized = await this.checksRepo.update({
+    await this.checksRepo.update({
       id: checkId,
       status: ContentRiskCheckStatus.COMPLETED,
       currentStep: null,
       finishedAt: new Date(),
       duplicateOfCheckId: winner.id,
     });
-    if (refinalized instanceof Error) {
-      throw new PipelineFailedError(
-        ContentRiskStepName.AGGREGATE_RESULT,
-        'FINALIZE_RACE_REFINALIZE_FAILED',
-        refinalized.message,
-        refinalized,
-      );
-    }
 
     this.logger.info(
       { winnerCheckId: winner.id, loserCheckId: checkId },
@@ -291,9 +252,6 @@ export class ContentRiskChecksPipelineService {
 
   private async loadAndPrepareCheck(checkId: string) {
     const check = await this.checksRepo.getById(checkId);
-    if (check instanceof Error) {
-      throw new Error(`Failed to load check: ${check.message}`);
-    }
     if (!check) {
       throw new Error(`Check ${checkId} not found`);
     }
@@ -309,15 +267,11 @@ export class ContentRiskChecksPipelineService {
       throw new Error(`Check ${checkId} has no promptVersionId`);
     }
 
-    const updated = await this.checksRepo.update({
+    return this.checksRepo.update({
       id: checkId,
       status: ContentRiskCheckStatus.PROCESSING,
       startedAt: check.startedAt ?? new Date(),
     });
-    if (updated instanceof Error) {
-      throw new Error(`Failed to set PROCESSING: ${updated.message}`);
-    }
-    return updated;
   }
 
   private async executeStep<I, O>(
@@ -339,14 +293,6 @@ export class ContentRiskChecksPipelineService {
       attempt,
       startedAt: new Date(),
     });
-    if (started instanceof Error) {
-      throw new PipelineFailedError(
-        step.name,
-        'STEP_LOG_CREATE_FAILED',
-        started.message,
-        started,
-      );
-    }
 
     const startMs = Date.now();
     let result: StepResult<O>;

@@ -26,7 +26,7 @@ export class PrismaPromptsRepository implements PromptsRepository {
     this.logger.setContext(PrismaPromptsRepository.name);
   }
 
-  async getActiveByName(name: string): Promise<Prompt | null | Error> {
+  async getActiveByName(name: string): Promise<Prompt | null> {
     const startedAt = Date.now();
     const cached = this.cache.get(name);
     if (cached && cached.expiresAt > startedAt) {
@@ -62,7 +62,7 @@ export class PrismaPromptsRepository implements PromptsRepository {
       );
       return prompt;
     } catch (err) {
-      return new RepositoryError(
+      throw new RepositoryError(
         FAILED_TO_GET_ACTIVE_PROMPT_BY_NAME,
         FAILED_TO_GET_ACTIVE_PROMPT_BY_NAME,
         err,
@@ -70,14 +70,14 @@ export class PrismaPromptsRepository implements PromptsRepository {
     }
   }
 
-  async getById(id: string): Promise<Prompt | null | Error> {
+  async getById(id: string): Promise<Prompt | null> {
     try {
       const row = await this.prismaService.prompt.findUnique({
         where: { id },
       });
       return row ? toDomainPrompt(row) : null;
     } catch (err) {
-      return new RepositoryError(
+      throw new RepositoryError(
         FAILED_TO_GET_PROMPT_BY_ID,
         FAILED_TO_GET_PROMPT_BY_ID,
         err,

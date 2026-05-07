@@ -76,7 +76,6 @@ describe('DetectDuplicateStep', () => {
       getById: jest.fn(),
       getMany: jest.fn(),
       update: jest.fn(),
-      findByContentHash: jest.fn(),
       findActiveByContentHash: jest.fn(),
     };
     analysisResultsRepo = {
@@ -141,8 +140,8 @@ describe('DetectDuplicateStep', () => {
     expect(analysisResultsRepo.create).not.toHaveBeenCalled();
   });
 
-  it('returns DEDUP_LOOKUP_FAILED when checks repo errors', async () => {
-    checksRepo.findActiveByContentHash.mockResolvedValue(new Error('db down'));
+  it('returns DEDUP_LOOKUP_FAILED when checks repo throws', async () => {
+    checksRepo.findActiveByContentHash.mockRejectedValue(new Error('db down'));
 
     const result = await step.execute(input, ctx);
 

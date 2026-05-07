@@ -48,7 +48,7 @@ export class PrismaContentRiskStepLogsRepository implements ContentRiskStepLogsR
 
       return toDomainContentRiskStepLog(row);
     } catch (err) {
-      return new RepositoryError(
+      throw new RepositoryError(
         FAILED_TO_CREATE_CONTENT_RISK_STEP_LOG,
         FAILED_TO_CREATE_CONTENT_RISK_STEP_LOG,
         err,
@@ -82,7 +82,7 @@ export class PrismaContentRiskStepLogsRepository implements ContentRiskStepLogsR
 
       return toDomainContentRiskStepLog(row);
     } catch (err) {
-      return new RepositoryError(
+      throw new RepositoryError(
         FAILED_TO_UPDATE_CONTENT_RISK_STEP_LOG,
         FAILED_TO_UPDATE_CONTENT_RISK_STEP_LOG,
         err,
@@ -99,7 +99,7 @@ export class PrismaContentRiskStepLogsRepository implements ContentRiskStepLogsR
 
       return rows.map(toDomainContentRiskStepLog);
     } catch (err) {
-      return new RepositoryError(
+      throw new RepositoryError(
         FAILED_TO_GET_CONTENT_RISK_STEP_LOGS_BY_CHECK_ID,
         FAILED_TO_GET_CONTENT_RISK_STEP_LOGS_BY_CHECK_ID,
         err,

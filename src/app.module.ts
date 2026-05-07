@@ -25,12 +25,15 @@ const redactSecretsByName = (
   seen: WeakSet<object> = new WeakSet(),
 ): unknown => {
   if (value === null || typeof value !== 'object') return value;
-  if (seen.has(value as object)) return '[Circular]';
-  seen.add(value as object);
-  if (Array.isArray(value)) return value.map((v) => redactSecretsByName(v, seen));
+  if (seen.has(value)) return '[Circular]';
+  seen.add(value);
+  if (Array.isArray(value))
+    return value.map((v) => redactSecretsByName(v, seen));
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-    out[k] = SECRET_KEY_PATTERN.test(k) ? '[Redacted]' : redactSecretsByName(v, seen);
+    out[k] = SECRET_KEY_PATTERN.test(k)
+      ? '[Redacted]'
+      : redactSecretsByName(v, seen);
   }
   return out;
 };

@@ -173,8 +173,8 @@ describe('AiAnalysisStep', () => {
     expect(llm.complete).not.toHaveBeenCalled();
   });
 
-  it('returns PROMPT_LOOKUP_FAILED when prompt repo returns Error', async () => {
-    promptsRepo.getById.mockResolvedValue(new Error('db down'));
+  it('returns PROMPT_LOOKUP_FAILED when prompt repo throws', async () => {
+    promptsRepo.getById.mockRejectedValue(new Error('db down'));
 
     const result = await step.execute(input, ctx);
 

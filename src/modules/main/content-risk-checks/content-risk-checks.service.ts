@@ -3,7 +3,6 @@ import {
   BadRequestException,
   Inject,
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -26,7 +25,6 @@ import {
   PROMPTS_REPOSITORY,
   PromptsRepository,
 } from '../../../infrastructure/postgres/ports/prompts.repository';
-import { RepositoryError } from '../../../infrastructure/postgres/repository/repository-error';
 import { AnalysisQueue } from './analysis.queue';
 import { ContentRiskCheckDto } from './dto/content-risk-check.dto';
 import { ContentRiskStepLogDto } from './dto/content-risk-step-log.dto';
@@ -62,9 +60,8 @@ export class ContentRiskChecksService {
   }): Promise<ContentRiskCheckDto> {
     const contentHash = createHash('sha256').update(input.text).digest('hex');
 
-    const activePrompt = this.unwrap(
-      await this.promptsRepo.getActiveByName(ACTIVE_PROMPT_NAME),
-    );
+    const activePrompt =
+      await this.promptsRepo.getActiveByName(ACTIVE_PROMPT_NAME);
     if (!activePrompt) {
       throw new ServiceUnavailableException({
         code: 'NO_ACTIVE_PROMPT',
@@ -72,11 +69,9 @@ export class ContentRiskChecksService {
       });
     }
 
-    const existing = this.unwrap(
-      await this.checksRepo.findActiveByContentHash(
-        contentHash,
-        activePrompt.id,
-      ),
+    const existing = await this.checksRepo.findActiveByContentHash(
+      contentHash,
+      activePrompt.id,
     );
     if (existing) {
       this.logger.info(
@@ -86,17 +81,15 @@ export class ContentRiskChecksService {
       return contentRiskCheckToDto(existing);
     }
 
-    const check = this.unwrap(
-      await this.checksRepo.create({
-        rawText: input.text,
-        contentHash,
-        traceId: input.traceId,
-        promptVersionId: activePrompt.id,
-        sourceType: input.sourceType ?? ContentRiskSourceType.PLAIN_TEXT,
-        requestId: randomUUID(),
-        maxRetries: DEFAULT_MAX_RETRIES,
-      }),
-    );
+    const check = await this.checksRepo.create({
+      rawText: input.text,
+      contentHash,
+      traceId: input.traceId,
+      promptVersionId: activePrompt.id,
+      sourceType: input.sourceType ?? ContentRiskSourceType.PLAIN_TEXT,
+      requestId: randomUUID(),
+      maxRetries: DEFAULT_MAX_RETRIES,
+    });
 
     await this.analysisQueue.enqueue({
       checkId: check.id,
@@ -110,7 +103,7 @@ export class ContentRiskChecksService {
     originalId: string,
     traceId: string,
   ): Promise<ContentRiskCheckDto> {
-    const original = this.unwrap(await this.checksRepo.getById(originalId));
+    const original = await this.checksRepo.getById(originalId);
     if (!original) {
       throw new NotFoundException('Original check not found');
     }
@@ -125,9 +118,8 @@ export class ContentRiskChecksService {
       });
     }
 
-    const activePrompt = this.unwrap(
-      await this.promptsRepo.getActiveByName(ACTIVE_PROMPT_NAME),
-    );
+    const activePrompt =
+      await this.promptsRepo.getActiveByName(ACTIVE_PROMPT_NAME);
     if (!activePrompt) {
       throw new ServiceUnavailableException({
         code: 'NO_ACTIVE_PROMPT',
@@ -135,18 +127,16 @@ export class ContentRiskChecksService {
       });
     }
 
-    const newCheck = this.unwrap(
-      await this.checksRepo.create({
-        rawText: original.rawText,
-        contentHash: original.contentHash,
-        traceId,
-        promptVersionId: activePrompt.id,
-        replayOfCheckId: original.id,
-        sourceType: original.sourceType,
-        requestId: randomUUID(),
-        maxRetries: DEFAULT_MAX_RETRIES,
-      }),
-    );
+    const newCheck = await this.checksRepo.create({
+      rawText: original.rawText,
+      contentHash: original.contentHash,
+      traceId,
+      promptVersionId: activePrompt.id,
+      replayOfCheckId: original.id,
+      sourceType: original.sourceType,
+      requestId: randomUUID(),
+      maxRetries: DEFAULT_MAX_RETRIES,
+    });
 
     await this.analysisQueue.enqueue({
       checkId: newCheck.id,
@@ -170,14 +160,14 @@ export class ContentRiskChecksService {
   }
 
   async getCheckById(id: string): Promise<ContentRiskCheckDto> {
-    const check = this.unwrap(await this.checksRepo.getById(id));
+    const check = await this.checksRepo.getById(id);
 
     if (check === null) {
       throw new NotFoundException('Check not found');
     }
 
-    const analysisResult = this.unwrap(
-      await this.analysisResultsRepo.getByCheckId(check.id),
+    const analysisResult = await this.analysisResultsRepo.getByCheckId(
+      check.id,
     );
 
     return contentRiskCheckToDto(check, analysisResult);
@@ -186,35 +176,20 @@ export class ContentRiskChecksService {
   async getChecks(
     query: GetContentRiskCheckDto,
   ): Promise<GetContentRiskChecksOutputDto> {
-    const checks = this.unwrap(await this.checksRepo.getMany(query.status));
+    const checks = await this.checksRepo.getMany(query.status);
 
     return { items: checks.map((check) => contentRiskCheckToDto(check)) };
   }
 
   async getStepLogs(checkId: string): Promise<ContentRiskStepLogDto[]> {
-    const check = this.unwrap(await this.checksRepo.getById(checkId));
+    const check = await this.checksRepo.getById(checkId);
 
     if (check === null) {
       throw new NotFoundException('Check not found');
     }
 
-    const logs = this.unwrap(await this.stepLogsRepo.getByCheckId(checkId));
+    const logs = await this.stepLogsRepo.getByCheckId(checkId);
 
     return logs.map(contentRiskStepLogToDto);
-  }
-
-  private unwrap<T>(result: T | Error): T {
-    if (result instanceof Error) {
-      if (result instanceof RepositoryError) {
-        this.logger.error(
-          { err: result, cause: result.cause, prismaCode: result.prismaCode },
-          'Repository error',
-        );
-      } else {
-        this.logger.error({ err: result }, 'Repository error');
-      }
-      throw new InternalServerErrorException('Database error');
-    }
-    return result;
   }
 }

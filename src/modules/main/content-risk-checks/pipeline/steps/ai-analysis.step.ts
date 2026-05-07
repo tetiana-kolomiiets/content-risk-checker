@@ -7,6 +7,7 @@ import {
   AiAnalysisOutputSchema,
 } from '../../../../../domain/content-risk-checks/schemas/ai-output.schema';
 import { AiFewShotExample } from '../../../../../domain/content-risk-checks/types/ai-few-shot-example.type';
+import { Prompt } from '../../../../../domain/content-risk-checks/types/prompt.type';
 import {
   LLM_CLIENT,
   LlmClient,
@@ -45,11 +46,13 @@ export class AiAnalysisStep implements PipelineStep<
     input: AiAnalysisInput,
     ctx: StepContext,
   ): Promise<StepResult<AiAnalysisOutput>> {
-    const promptOrErr = await this.promptsRepo.getById(ctx.promptVersionId);
-    if (promptOrErr instanceof Error) {
-      return this.fail('PROMPT_LOOKUP_FAILED', promptOrErr.message, 0);
+    let prompt: Prompt | null;
+    try {
+      prompt = await this.promptsRepo.getById(ctx.promptVersionId);
+    } catch (err) {
+      return this.fail('PROMPT_LOOKUP_FAILED', (err as Error).message, 0);
     }
-    if (!promptOrErr) {
+    if (!prompt) {
       return this.fail(
         'PROMPT_NOT_FOUND',
         `Prompt ${ctx.promptVersionId} not found`,
@@ -60,7 +63,7 @@ export class AiAnalysisStep implements PipelineStep<
     let system: string;
     let userTemplate: string;
     try {
-      const parsed = JSON.parse(promptOrErr.template) as {
+      const parsed = JSON.parse(prompt.template) as {
         system: string;
         userTemplate: string;
       };
@@ -70,7 +73,7 @@ export class AiAnalysisStep implements PipelineStep<
       return this.fail(
         'PROMPT_TEMPLATE_INVALID',
         (e as Error).message,
-        promptOrErr.version,
+        prompt.version,
       );
     }
 
@@ -109,14 +112,14 @@ export class AiAnalysisStep implements PipelineStep<
         llmResp = await this.llm.complete({
           system,
           user: userMessage,
-          model: promptOrErr.model,
+          model: prompt.model,
           temperature: 0,
         });
       } catch (e) {
         return this.fail(
           'LLM_CALL_FAILED',
           (e as Error).message,
-          promptOrErr.version,
+          prompt.version,
           totalTokensIn,
           totalTokensOut,
         );
@@ -150,7 +153,7 @@ export class AiAnalysisStep implements PipelineStep<
         output: zodResult.data,
         details: {
           stepName: ContentRiskStepName.RUN_AI_ANALYSIS,
-          promptVersion: promptOrErr.version,
+          promptVersion: prompt.version,
           tokensIn: totalTokensIn,
           tokensOut: totalTokensOut,
           attempts: attempt,
@@ -161,7 +164,7 @@ export class AiAnalysisStep implements PipelineStep<
     return this.fail(
       'AI_VALIDATION_FAILED',
       `Failed schema validation after 2 attempts. Last error: ${lastError}`,
-      promptOrErr.version,
+      prompt.version,
       totalTokensIn,
       totalTokensOut,
     );

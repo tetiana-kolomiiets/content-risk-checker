@@ -15,11 +15,9 @@ export interface ContentRiskAnalysisResultsRepository {
     flaggedFragments: unknown;
     matchedRules: unknown;
     summary?: string | null;
-  }): Promise<ContentRiskAnalysisResult | Error>;
+  }): Promise<ContentRiskAnalysisResult>;
 
-  getByCheckId(
-    checkId: string,
-  ): Promise<ContentRiskAnalysisResult | null | Error>;
+  getByCheckId(checkId: string): Promise<ContentRiskAnalysisResult | null>;
 
-  delete(checkId: string): Promise<void | Error>;
+  delete(checkId: string): Promise<void>;
 }

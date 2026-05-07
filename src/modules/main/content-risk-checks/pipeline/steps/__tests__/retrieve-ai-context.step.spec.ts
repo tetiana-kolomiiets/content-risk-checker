@@ -127,13 +127,13 @@ describe('RetrieveAiContextStep', () => {
     expect(memoryRepo.findSimilar).not.toHaveBeenCalled();
   });
 
-  it('degrades gracefully when memory repo returns Error', async () => {
+  it('degrades gracefully when memory repo throws', async () => {
     const module = await buildModule(buildConfig());
     step = module.get(RetrieveAiContextStep);
 
     const embedding = [0.1, 0.2, 0.3];
     embeddingClient.embed.mockResolvedValue(embedding);
-    memoryRepo.findSimilar.mockResolvedValue(new Error('db down'));
+    memoryRepo.findSimilar.mockRejectedValue(new Error('db down'));
 
     const result = await step.execute(input, ctx);
 

@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ContentRiskStepName } from '../../../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
 import { ContentRiskAnalysisResult } from '../../../../../domain/content-risk-checks/types/content-risk-analysis-result.type';
+import { ContentRiskCheck } from '../../../../../domain/content-risk-checks/types/content-risk-check.type';
 import {
   CONTENT_RISK_ANALYSIS_RESULTS_REPOSITORY,
   ContentRiskAnalysisResultsRepository,
@@ -41,13 +42,14 @@ export class DetectDuplicateStep implements PipelineStep<
     input: DetectDuplicateInput,
     ctx: StepContext,
   ): Promise<StepResult<DetectDuplicateOutput>> {
-    const found = await this.checksRepo.findActiveByContentHash(
-      input.contentHash,
-      ctx.promptVersionId,
-    );
-
-    if (found instanceof Error) {
-      return this.fail('DEDUP_LOOKUP_FAILED', found.message);
+    let found: ContentRiskCheck | null;
+    try {
+      found = await this.checksRepo.findActiveByContentHash(
+        input.contentHash,
+        ctx.promptVersionId,
+      );
+    } catch (err) {
+      return this.fail('DEDUP_LOOKUP_FAILED', (err as Error).message);
     }
 
     if (!found || found.id === input.selfId) {
@@ -65,7 +67,7 @@ export class DetectDuplicateStep implements PipelineStep<
     }
 
     const sourceResult = await this.analysisResultsRepo.getByCheckId(found.id);
-    if (sourceResult instanceof Error || !sourceResult) {
+    if (!sourceResult) {
       return this.fail(
         'DEDUP_SOURCE_RESULT_MISSING',
         `Source check ${found.id} has no analysis result`,

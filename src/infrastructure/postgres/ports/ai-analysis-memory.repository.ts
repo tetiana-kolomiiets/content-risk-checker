@@ -27,7 +27,7 @@ export interface AiAnalysisMemoryRepository {
     embedding: number[],
     promptVersionId: string,
     options: FindSimilarOptions,
-  ): Promise<AiFewShotExample[] | Error>;
+  ): Promise<AiFewShotExample[]>;
 
-  create(data: CreateAiAnalysisMemoryInput): Promise<{ id: string } | Error>;
+  create(data: CreateAiAnalysisMemoryInput): Promise<{ id: string } | null>;
 }

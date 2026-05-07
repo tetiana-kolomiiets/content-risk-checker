@@ -15,15 +15,12 @@ export interface ContentRiskChecksRepository {
     maxRetries: number;
     replayOfCheckId?: string | null;
     promptVersionId?: string | null;
-  }): Promise<ContentRiskCheck | Error>;
+  }): Promise<ContentRiskCheck>;
 
-  getById(id: string): Promise<ContentRiskCheck | null | Error>;
+  getById(id: string): Promise<ContentRiskCheck | null>;
 
-  getMany(status?: ContentRiskCheckStatus): Promise<ContentRiskCheck[] | Error>;
+  getMany(status?: ContentRiskCheckStatus): Promise<ContentRiskCheck[]>;
 
-  // Throws on Prisma unique-constraint violation (P2002) so the pipeline can
-  // detect a lost finalize race against the partial unique index. All other
-  // failures are wrapped as Error per the standard repository contract.
   update(data: {
     id: string;
     status?: ContentRiskCheckStatus;
@@ -36,15 +33,10 @@ export interface ContentRiskChecksRepository {
     duplicateOfCheckId?: string | null;
     startedAt?: Date | null;
     finishedAt?: Date | null;
-  }): Promise<ContentRiskCheck | Error>;
-
-  findByContentHash(
-    contentHash: string,
-    promptVersionId?: string | null,
-  ): Promise<ContentRiskCheck | Error>;
+  }): Promise<ContentRiskCheck>;
 
   findActiveByContentHash(
     contentHash: string,
     promptVersionId: string,
-  ): Promise<ContentRiskCheck | null | Error>;
+  ): Promise<ContentRiskCheck | null>;
 }

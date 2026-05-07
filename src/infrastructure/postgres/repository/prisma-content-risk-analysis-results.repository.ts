@@ -42,7 +42,7 @@ export class PrismaContentRiskAnalysisResultsRepository implements ContentRiskAn
 
       return toDomainContentRiskAnalysisResult(row);
     } catch (err) {
-      return new RepositoryError(
+      throw new RepositoryError(
         FAILED_TO_CREATE_CONTENT_RISK_ANALYSIS_RESULT,
         FAILED_TO_CREATE_CONTENT_RISK_ANALYSIS_RESULT,
         err,
@@ -64,7 +64,7 @@ export class PrismaContentRiskAnalysisResultsRepository implements ContentRiskAn
 
       return toDomainContentRiskAnalysisResult(row);
     } catch (err) {
-      return new RepositoryError(
+      throw new RepositoryError(
         FAILED_TO_GET_CONTENT_RISK_ANALYSIS_RESULT_BY_CHECK_ID,
         FAILED_TO_GET_CONTENT_RISK_ANALYSIS_RESULT_BY_CHECK_ID,
         err,
@@ -72,13 +72,13 @@ export class PrismaContentRiskAnalysisResultsRepository implements ContentRiskAn
     }
   }
 
-  async delete(checkId: string): Promise<void | Error> {
+  async delete(checkId: string): Promise<void> {
     try {
       await this.prismaService.contentRiskAnalysisResult.deleteMany({
         where: { checkId },
       });
     } catch (err) {
-      return new RepositoryError(
+      throw new RepositoryError(
         FAILED_TO_DELETE_CONTENT_RISK_ANALYSIS_RESULT,
         FAILED_TO_DELETE_CONTENT_RISK_ANALYSIS_RESULT,
         err,

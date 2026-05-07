@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { isPrismaUniqueConstraintError } from '../../../common/utils/prisma-errors';
+import { Prisma } from '../../../../generated/prisma/client';
 import { ContentRiskCheckStatus } from '../../../domain/content-risk-checks/enums/content-risk-check-status.enum';
 import { ContentRiskSourceType } from '../../../domain/content-risk-checks/enums/content-risk-source-type.enum';
 import { ContentRiskStepName } from '../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
@@ -12,8 +12,10 @@ import {
   FAILED_TO_GET_CONTENT_RISK_CHECKS,
   FAILED_TO_UPDATE_CONTENT_RISK_CHECK,
 } from './repository-error-messages';
-import { RepositoryError } from './repository-error';
+import { RepositoryError, UniqueConstraintError } from './repository-error';
 import { toDomainContentRiskCheck } from './mappers/to-domain-content-risk-check.mapper';
+
+const PRISMA_UNIQUE_CONSTRAINT_CODE = 'P2002';
 
 @Injectable()
 export class PrismaContentRiskChecksRepository implements ContentRiskChecksRepository {
@@ -45,7 +47,7 @@ export class PrismaContentRiskChecksRepository implements ContentRiskChecksRepos
 
       return toDomainContentRiskCheck(row);
     } catch (err) {
-      return new RepositoryError(
+      throw new RepositoryError(
         FAILED_TO_CREATE_CONTENT_RISK_CHECK,
         FAILED_TO_CREATE_CONTENT_RISK_CHECK,
         err,
@@ -65,7 +67,7 @@ export class PrismaContentRiskChecksRepository implements ContentRiskChecksRepos
 
       return toDomainContentRiskCheck(row);
     } catch (err) {
-      return new RepositoryError(
+      throw new RepositoryError(
         FAILED_TO_GET_CONTENT_RISK_CHECK_BY_ID,
         FAILED_TO_GET_CONTENT_RISK_CHECK_BY_ID,
         err,
@@ -82,7 +84,7 @@ export class PrismaContentRiskChecksRepository implements ContentRiskChecksRepos
 
       return rows.map(toDomainContentRiskCheck);
     } catch (err) {
-      return new RepositoryError(
+      throw new RepositoryError(
         FAILED_TO_GET_CONTENT_RISK_CHECKS,
         FAILED_TO_GET_CONTENT_RISK_CHECKS,
         err,
@@ -122,43 +124,19 @@ export class PrismaContentRiskChecksRepository implements ContentRiskChecksRepos
 
       return toDomainContentRiskCheck(row);
     } catch (err) {
-      // Surface unique-constraint violations so the pipeline can run race-fallback.
-      if (isPrismaUniqueConstraintError(err)) {
-        throw err;
-      }
-      return new RepositoryError(
-        FAILED_TO_UPDATE_CONTENT_RISK_CHECK,
-        FAILED_TO_UPDATE_CONTENT_RISK_CHECK,
-        err,
-      );
-    }
-  }
-
-  async findByContentHash(
-    contentHash: string,
-    promptVersionId?: string | null,
-  ) {
-    try {
-      const row = await this.prismaService.contentRiskCheck.findFirst({
-        where: {
-          contentHash,
-          ...(promptVersionId !== undefined ? { promptVersionId } : {}),
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      if (!row) {
-        return new RepositoryError(
-          FAILED_TO_FIND_CONTENT_RISK_CHECK_BY_CONTENT_HASH,
-          FAILED_TO_FIND_CONTENT_RISK_CHECK_BY_CONTENT_HASH,
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === PRISMA_UNIQUE_CONSTRAINT_CODE
+      ) {
+        throw new UniqueConstraintError(
+          FAILED_TO_UPDATE_CONTENT_RISK_CHECK,
+          FAILED_TO_UPDATE_CONTENT_RISK_CHECK,
+          err,
         );
       }
-
-      return toDomainContentRiskCheck(row);
-    } catch (err) {
-      return new RepositoryError(
-        FAILED_TO_FIND_CONTENT_RISK_CHECK_BY_CONTENT_HASH,
-        FAILED_TO_FIND_CONTENT_RISK_CHECK_BY_CONTENT_HASH,
+      throw new RepositoryError(
+        FAILED_TO_UPDATE_CONTENT_RISK_CHECK,
+        FAILED_TO_UPDATE_CONTENT_RISK_CHECK,
         err,
       );
     }
@@ -186,7 +164,7 @@ export class PrismaContentRiskChecksRepository implements ContentRiskChecksRepos
 
       return toDomainContentRiskCheck(row);
     } catch (err) {
-      return new RepositoryError(
+      throw new RepositoryError(
         FAILED_TO_FIND_CONTENT_RISK_CHECK_BY_CONTENT_HASH,
         FAILED_TO_FIND_CONTENT_RISK_CHECK_BY_CONTENT_HASH,
         err,

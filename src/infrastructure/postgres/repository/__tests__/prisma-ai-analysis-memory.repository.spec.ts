@@ -3,10 +3,10 @@ import { ContentRiskLevel } from '../../../../domain/content-risk-checks/enums/c
 import type { PrismaService } from '../../prisma/prisma.service';
 import { PrismaAiAnalysisMemoryRepository } from '../prisma-ai-analysis-memory.repository';
 import {
-  AI_MEMORY_DUPLICATE_CHECK_ID,
   FAILED_TO_CREATE_AI_MEMORY,
   FAILED_TO_FIND_SIMILAR_AI_MEMORIES,
 } from '../repository-error-messages';
+import { RepositoryError } from '../repository-error';
 
 const PROMPT_VERSION_ID = '00000000-0000-4000-8000-000000000001';
 const CHECK_ID = '00000000-0000-4000-8000-000000000002';
@@ -67,29 +67,24 @@ describe('PrismaAiAnalysisMemoryRepository', () => {
         },
       );
 
-      expect(Array.isArray(result)).toBe(true);
-      if (result instanceof Error) return;
       expect(result).toHaveLength(1);
       expect(result[0].contentSnippet).toBe('a');
       expect(result[0].similarity).toBe(0.9);
     });
 
-    it('returns Error when prisma throws', async () => {
+    it('throws RepositoryError when prisma throws', async () => {
       queryRaw.mockRejectedValueOnce(new Error('db down'));
 
-      const result = await repo.findSimilar(
-        buildEmbedding(),
-        PROMPT_VERSION_ID,
-        {
+      await expect(
+        repo.findSimilar(buildEmbedding(), PROMPT_VERSION_ID, {
           topN: 3,
           minSimilarity: 0.85,
           excludeCheckId: CHECK_ID,
-        },
-      );
-
-      expect(result).toBeInstanceOf(Error);
-      if (!(result instanceof Error)) return;
-      expect(result.message).toBe(FAILED_TO_FIND_SIMILAR_AI_MEMORIES);
+        }),
+      ).rejects.toMatchObject({
+        name: 'RepositoryError',
+        message: FAILED_TO_FIND_SIMILAR_AI_MEMORIES,
+      });
     });
   });
 
@@ -114,24 +109,23 @@ describe('PrismaAiAnalysisMemoryRepository', () => {
       expect(result).toEqual({ id: 'memory-id-1' });
     });
 
-    it('returns duplicate-checkId error when ON CONFLICT skips insert', async () => {
+    it('returns null when ON CONFLICT skips insert', async () => {
       queryRaw.mockResolvedValueOnce([]);
 
       const result = await repo.create(buildInput());
 
-      expect(result).toBeInstanceOf(Error);
-      if (!(result instanceof Error)) return;
-      expect(result.message).toBe(AI_MEMORY_DUPLICATE_CHECK_ID);
+      expect(result).toBeNull();
     });
 
-    it('returns Error when prisma throws', async () => {
+    it('throws RepositoryError when prisma throws', async () => {
       queryRaw.mockRejectedValueOnce(new Error('db down'));
 
-      const result = await repo.create(buildInput());
-
-      expect(result).toBeInstanceOf(Error);
-      if (!(result instanceof Error)) return;
-      expect(result.message).toBe(FAILED_TO_CREATE_AI_MEMORY);
+      await expect(repo.create(buildInput())).rejects.toBeInstanceOf(
+        RepositoryError,
+      );
+      await expect(repo.create(buildInput())).rejects.toMatchObject({
+        message: FAILED_TO_CREATE_AI_MEMORY,
+      });
     });
   });
 });

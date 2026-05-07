@@ -136,7 +136,7 @@ describe('PersistAiMemoryStep', () => {
 
   it('treats repo error as non-fatal, returns ok with REPO_ERROR and logs warn', async () => {
     const step = new PersistAiMemoryStep(memoryRepo, buildConfig(), logger);
-    memoryRepo.create.mockResolvedValue(new Error('insert failed'));
+    memoryRepo.create.mockRejectedValue(new Error('insert failed'));
 
     const result = await step.execute(buildInput(), ctx);
 

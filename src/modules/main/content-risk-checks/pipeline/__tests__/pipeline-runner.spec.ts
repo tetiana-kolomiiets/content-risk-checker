@@ -12,6 +12,7 @@ import { ContentRiskStepLog } from '../../../../../domain/content-risk-checks/ty
 import { ContentRiskAnalysisResultsRepository } from '../../../../../infrastructure/postgres/ports/content-risk-analysis-results.repository';
 import { ContentRiskChecksRepository } from '../../../../../infrastructure/postgres/ports/content-risk-checks.repository';
 import { ContentRiskStepLogsRepository } from '../../../../../infrastructure/postgres/ports/content-risk-step-logs.repository';
+import { UniqueConstraintError } from '../../../../../infrastructure/postgres/repository/repository-error';
 import { ContentRiskChecksPipelineService } from '../../content-risk-checks-pipeline.service';
 import { PipelineFailedError } from '../contracts/pipeline-error';
 import { PipelineStep } from '../contracts/pipeline-step.interface';
@@ -216,7 +217,6 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
       getById: jest.fn(),
       getMany: jest.fn(),
       update: jest.fn(),
-      findByContentHash: jest.fn(),
       findActiveByContentHash: jest.fn(),
     };
     analysisResultsRepo = {
@@ -531,7 +531,7 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
     checksRepo.update.mockResolvedValue(buildCheck());
 
     const winnerResult = buildAnalysisResult();
-    analysisResultsRepo.create.mockResolvedValue(new Error('insert failed'));
+    analysisResultsRepo.create.mockRejectedValue(new Error('insert failed'));
 
     normalize.execute.mockResolvedValue(
       ok({ normalizedText: 'hello world' }, normalizeDetails),
@@ -664,11 +664,13 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
         data.status === ContentRiskCheckStatus.COMPLETED &&
         updateCount === 9
       ) {
-        const err: Error & { code?: string } = new Error(
-          'unique constraint violation',
+        return Promise.reject(
+          new UniqueConstraintError(
+            'Failed to update content risk check',
+            'Failed to update content risk check',
+            { code: 'P2002' },
+          ),
         );
-        err.code = 'P2002';
-        return Promise.reject(err);
       }
       return Promise.resolve(buildCheck({ ...data }));
     });

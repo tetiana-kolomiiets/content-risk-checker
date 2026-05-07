@@ -78,23 +78,25 @@ export class RetrieveAiContextStep implements PipelineStep<
       infer: true,
     });
 
-    const examples = await this.memoryRepo.findSimilar(
-      embedding,
-      _ctx.promptVersionId,
-      {
-        topN,
-        minSimilarity,
-        excludeCheckId: input.selfId,
-      },
-    );
-    if (examples instanceof Error) {
+    let examples: AiFewShotExample[];
+    try {
+      examples = await this.memoryRepo.findSimilar(
+        embedding,
+        _ctx.promptVersionId,
+        {
+          topN,
+          minSimilarity,
+          excludeCheckId: input.selfId,
+        },
+      );
+    } catch (err) {
       return this.success(
         { examples: [], embedding, embeddingModel: model },
         {
           stepName: this.name,
           enabled: true,
           examplesFound: 0,
-          repoErrorMessage: examples.message,
+          repoErrorMessage: (err as Error).message,
         },
       );
     }

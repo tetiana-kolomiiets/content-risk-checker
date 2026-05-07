@@ -18,7 +18,7 @@ export interface ContentRiskStepLogsRepository {
     startedAt?: Date;
     finishedAt?: Date | null;
     durationMs?: number | null;
-  }): Promise<ContentRiskStepLog | Error>;
+  }): Promise<ContentRiskStepLog>;
 
   update(
     id: string,
@@ -30,7 +30,7 @@ export interface ContentRiskStepLogsRepository {
       finishedAt?: Date | null;
       durationMs?: number | null;
     },
-  ): Promise<ContentRiskStepLog | Error>;
+  ): Promise<ContentRiskStepLog>;
 
-  getByCheckId(checkId: string): Promise<ContentRiskStepLog[] | Error>;
+  getByCheckId(checkId: string): Promise<ContentRiskStepLog[]>;
 }

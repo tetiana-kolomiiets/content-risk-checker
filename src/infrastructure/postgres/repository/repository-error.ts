@@ -20,3 +20,11 @@ export class RepositoryError extends Error {
     }
   }
 }
+
+export class UniqueConstraintError extends RepositoryError {
+  constructor(code: string, message: string, cause?: unknown) {
+    super(code, message, cause);
+    this.name = 'UniqueConstraintError';
+    (this as { prismaCode?: string }).prismaCode = 'P2002';
+  }
+}

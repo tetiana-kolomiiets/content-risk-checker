@@ -61,24 +61,25 @@ export class PersistAiMemoryStep implements PipelineStep<
       return this.skipped('NO_EMBEDDING');
     }
 
-    const created = await this.memoryRepo.create({
-      checkId: ctx.checkId,
-      embedding: input.embedding,
-      embeddingModel: input.embeddingModel,
-      contentSnippet: input.normalizedText.slice(0, SNIPPET_MAX_LEN),
-      contentHash: input.contentHash,
-      finalRiskLevel: input.finalRiskLevel,
-      categories: input.categories,
-      rationale: input.rationale,
-      promptVersionId: ctx.promptVersionId,
-    });
-
-    if (created instanceof Error) {
+    try {
+      await this.memoryRepo.create({
+        checkId: ctx.checkId,
+        embedding: input.embedding,
+        embeddingModel: input.embeddingModel,
+        contentSnippet: input.normalizedText.slice(0, SNIPPET_MAX_LEN),
+        contentHash: input.contentHash,
+        finalRiskLevel: input.finalRiskLevel,
+        categories: input.categories,
+        rationale: input.rationale,
+        promptVersionId: ctx.promptVersionId,
+      });
+    } catch (err) {
+      const message = (err as Error).message;
       this.logger.warn(
         {
           checkId: ctx.checkId,
           traceId: ctx.traceId,
-          error: created.message,
+          error: message,
         },
         'Failed to persist AI memory — non-fatal',
       );
@@ -89,7 +90,7 @@ export class PersistAiMemoryStep implements PipelineStep<
           stepName: ContentRiskStepName.PERSIST_AI_MEMORY,
           persisted: false,
           skipReason: 'REPO_ERROR',
-          errorMessage: created.message,
+          errorMessage: message,
         },
       };
     }

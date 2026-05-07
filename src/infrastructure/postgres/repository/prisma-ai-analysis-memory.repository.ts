@@ -10,7 +10,6 @@ import {
 } from '../ports/ai-analysis-memory.repository';
 import { PrismaService } from '../prisma/prisma.service';
 import {
-  AI_MEMORY_DUPLICATE_CHECK_ID,
   FAILED_TO_CREATE_AI_MEMORY,
   FAILED_TO_FIND_SIMILAR_AI_MEMORIES,
 } from './repository-error-messages';
@@ -35,7 +34,7 @@ export class PrismaAiAnalysisMemoryRepository implements AiAnalysisMemoryReposit
     embedding: number[],
     promptVersionId: string,
     options: FindSimilarOptions,
-  ): Promise<AiFewShotExample[] | Error> {
+  ): Promise<AiFewShotExample[]> {
     try {
       const vectorLiteral = toVectorLiteral(embedding);
       const rows = await this.prismaService.$queryRaw<SimilarRow[]>(
@@ -64,7 +63,7 @@ export class PrismaAiAnalysisMemoryRepository implements AiAnalysisMemoryReposit
           similarity: r.similarity,
         }));
     } catch (err) {
-      return new RepositoryError(
+      throw new RepositoryError(
         FAILED_TO_FIND_SIMILAR_AI_MEMORIES,
         FAILED_TO_FIND_SIMILAR_AI_MEMORIES,
         err,
@@ -74,7 +73,7 @@ export class PrismaAiAnalysisMemoryRepository implements AiAnalysisMemoryReposit
 
   async create(
     data: CreateAiAnalysisMemoryInput,
-  ): Promise<{ id: string } | Error> {
+  ): Promise<{ id: string } | null> {
     try {
       const vectorLiteral = toVectorLiteral(data.embedding);
       const categoriesArray = `{${data.categories.join(',')}}`;
@@ -112,14 +111,11 @@ export class PrismaAiAnalysisMemoryRepository implements AiAnalysisMemoryReposit
       );
 
       if (rows.length === 0) {
-        return new RepositoryError(
-          AI_MEMORY_DUPLICATE_CHECK_ID,
-          AI_MEMORY_DUPLICATE_CHECK_ID,
-        );
+        return null;
       }
       return { id: rows[0].id };
     } catch (err) {
-      return new RepositoryError(
+      throw new RepositoryError(
         FAILED_TO_CREATE_AI_MEMORY,
         FAILED_TO_CREATE_AI_MEMORY,
         err,
