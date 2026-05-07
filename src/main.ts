@@ -5,7 +5,10 @@ import { configureHttpApp } from './bootstrap/http.bootstrap';
 import type { EnvConfig } from './config/env.schema';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(
+    AppModule.forRoot({ enableWorker: true }),
+    { bufferLogs: true },
+  );
   configureHttpApp(app);
 
   const config = app.get<ConfigService<EnvConfig, true>>(ConfigService);

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { DynamicModule, Module } from '@nestjs/common';
 import { EmbeddingModule } from '../../../infrastructure/embedding/embedding.module';
 import { AI_ANALYSIS_MEMORY_REPOSITORY } from '../../../infrastructure/postgres/ports/ai-analysis-memory.repository';
 import { CONTENT_RISK_ANALYSIS_RESULTS_REPOSITORY } from '../../../infrastructure/postgres/ports/content-risk-analysis-results.repository';
@@ -25,40 +25,43 @@ import { RetrieveAiContextStep } from './pipeline/steps/retrieve-ai-context.step
 import { RuleBasedScanStep } from './pipeline/steps/rule-based-scan.step';
 import { RulesProvider } from './pipeline/steps/rules.provider';
 
-const runWorker = process.env.DISABLE_WORKER !== 'true';
-
-@Module({
-  imports: [PrismaModule, QueueModule, PromptsModule, EmbeddingModule],
-  controllers: [ContentRiskChecksController],
-  providers: [
-    ContentRiskChecksService,
-    ContentRiskChecksPipelineService,
-    AnalysisQueue,
-    NormalizeTextStep,
-    DetectDuplicateStep,
-    RulesProvider,
-    RuleBasedScanStep,
-    RetrieveAiContextStep,
-    AiAnalysisStep,
-    AggregateResultStep,
-    PersistAiMemoryStep,
-    ...(runWorker ? [ContentRiskChecksProcessor] : []),
-    {
-      provide: CONTENT_RISK_CHECKS_REPOSITORY,
-      useClass: PrismaContentRiskChecksRepository,
-    },
-    {
-      provide: CONTENT_RISK_ANALYSIS_RESULTS_REPOSITORY,
-      useClass: PrismaContentRiskAnalysisResultsRepository,
-    },
-    {
-      provide: CONTENT_RISK_STEP_LOGS_REPOSITORY,
-      useClass: PrismaContentRiskStepLogsRepository,
-    },
-    {
-      provide: AI_ANALYSIS_MEMORY_REPOSITORY,
-      useClass: PrismaAiAnalysisMemoryRepository,
-    },
-  ],
-})
-export class ContentRiskChecksModule {}
+@Module({})
+export class ContentRiskChecksModule {
+  static register(options: { enableWorker: boolean }): DynamicModule {
+    return {
+      module: ContentRiskChecksModule,
+      imports: [PrismaModule, QueueModule, PromptsModule, EmbeddingModule],
+      controllers: [ContentRiskChecksController],
+      providers: [
+        ContentRiskChecksService,
+        ContentRiskChecksPipelineService,
+        AnalysisQueue,
+        NormalizeTextStep,
+        DetectDuplicateStep,
+        RulesProvider,
+        RuleBasedScanStep,
+        RetrieveAiContextStep,
+        AiAnalysisStep,
+        AggregateResultStep,
+        PersistAiMemoryStep,
+        ...(options.enableWorker ? [ContentRiskChecksProcessor] : []),
+        {
+          provide: CONTENT_RISK_CHECKS_REPOSITORY,
+          useClass: PrismaContentRiskChecksRepository,
+        },
+        {
+          provide: CONTENT_RISK_ANALYSIS_RESULTS_REPOSITORY,
+          useClass: PrismaContentRiskAnalysisResultsRepository,
+        },
+        {
+          provide: CONTENT_RISK_STEP_LOGS_REPOSITORY,
+          useClass: PrismaContentRiskStepLogsRepository,
+        },
+        {
+          provide: AI_ANALYSIS_MEMORY_REPOSITORY,
+          useClass: PrismaAiAnalysisMemoryRepository,
+        },
+      ],
+    };
+  }
+}

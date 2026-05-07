@@ -1,4 +1,9 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import {
+  DynamicModule,
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
@@ -37,65 +42,70 @@ export const LOGGER_REDACT_OPTIONS = {
   censor: '[Redacted]',
 };
 
-@Module({
-  imports: [
-    ConfigModule,
-    LoggerModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService<EnvConfig, true>) => ({
-        pinoHttp: {
-          level: config.get('LOG_LEVEL', { infer: true }),
-          transport: config.get('LOG_PRETTY', { infer: true })
-            ? { target: 'pino-pretty', options: { singleLine: true } }
-            : undefined,
-          customProps: () => ({ traceId: TraceContext.get() }),
-          redact: LOGGER_REDACT_OPTIONS,
-          serializers: {
-            req: pino.stdSerializers.req,
-            res: pino.stdSerializers.res,
-            err: (err: Error & { cause?: unknown; prismaCode?: string }) => {
-              const base = pino.stdSerializers.err(err) as Record<
-                string,
-                unknown
-              >;
-              if (err.cause !== undefined) {
-                base.cause = pino.stdSerializers.err(err.cause as Error);
-              }
-              if (typeof err.prismaCode === 'string') {
-                base.prismaCode = err.prismaCode;
-              }
-              return base;
-            },
-          },
-        },
-      }),
-    }),
-    ThrottlerModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService<EnvConfig, true>) => [
-        {
-          ttl: config.get('THROTTLE_TTL_MS', { infer: true }) ?? 60_000,
-          limit: config.get('THROTTLE_LIMIT', { infer: true }) ?? 60,
-        },
-      ],
-    }),
-    PrismaModule,
-    LlmModule,
-    EmbeddingModule,
-    HealthModule,
-    ContentRiskChecksModule,
-    PromptsModule,
-    AiMemoryModule,
-  ],
-  controllers: [AppController],
-  providers: [
-    AppService,
-    ...(process.env.NODE_ENV === 'test'
-      ? []
-      : [{ provide: APP_GUARD, useClass: ThrottlerGuard }]),
-  ],
-})
+@Module({})
 export class AppModule implements NestModule {
+  static forRoot(options: { enableWorker: boolean }): DynamicModule {
+    return {
+      module: AppModule,
+      imports: [
+        ConfigModule,
+        LoggerModule.forRootAsync({
+          inject: [ConfigService],
+          useFactory: (config: ConfigService<EnvConfig, true>) => ({
+            pinoHttp: {
+              level: config.get('LOG_LEVEL', { infer: true }),
+              transport: config.get('LOG_PRETTY', { infer: true })
+                ? { target: 'pino-pretty', options: { singleLine: true } }
+                : undefined,
+              customProps: () => ({ traceId: TraceContext.get() }),
+              redact: LOGGER_REDACT_OPTIONS,
+              serializers: {
+                req: pino.stdSerializers.req,
+                res: pino.stdSerializers.res,
+                err: (err: Error & { cause?: unknown; prismaCode?: string }) => {
+                  const base = pino.stdSerializers.err(err) as Record<
+                    string,
+                    unknown
+                  >;
+                  if (err.cause !== undefined) {
+                    base.cause = pino.stdSerializers.err(err.cause as Error);
+                  }
+                  if (typeof err.prismaCode === 'string') {
+                    base.prismaCode = err.prismaCode;
+                  }
+                  return base;
+                },
+              },
+            },
+          }),
+        }),
+        ThrottlerModule.forRootAsync({
+          inject: [ConfigService],
+          useFactory: (config: ConfigService<EnvConfig, true>) => [
+            {
+              ttl: config.get('THROTTLE_TTL_MS', { infer: true }) ?? 60_000,
+              limit: config.get('THROTTLE_LIMIT', { infer: true }) ?? 60,
+            },
+          ],
+        }),
+        PrismaModule,
+        LlmModule,
+        EmbeddingModule,
+        HealthModule,
+        ContentRiskChecksModule.register({ enableWorker: options.enableWorker }),
+        PromptsModule,
+        AiMemoryModule,
+      ],
+      controllers: [AppController],
+      providers: [
+        AppService,
+        ...(process.env.NODE_ENV === 'test'
+          ? []
+          : [{ provide: APP_GUARD, useClass: ThrottlerGuard }]),
+      ],
+    };
+  }
+
   configure(consumer: MiddlewareConsumer): void {
     consumer.apply(TraceMiddleware).forRoutes('*');
   }

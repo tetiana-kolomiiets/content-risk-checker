@@ -1,5 +1,3 @@
-process.env.DISABLE_WORKER = 'true';
-
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
@@ -8,7 +6,10 @@ import { configureHttpApp } from './bootstrap/http.bootstrap';
 import type { EnvConfig } from './config/env.schema';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(
+    AppModule.forRoot({ enableWorker: false }),
+    { bufferLogs: true },
+  );
   configureHttpApp(app);
 
   const config = app.get<ConfigService<EnvConfig, true>>(ConfigService);

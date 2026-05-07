@@ -93,7 +93,7 @@ describe('Content risk checks (e2e)', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [AppModule.forRoot({ enableWorker: true })],
     })
       .overrideProvider(LLM_CLIENT)
       .useValue(llmMock)

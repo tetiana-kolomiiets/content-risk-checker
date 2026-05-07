@@ -3,9 +3,10 @@ import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.createApplicationContext(AppModule, {
-    bufferLogs: true,
-  });
+  const app = await NestFactory.createApplicationContext(
+    AppModule.forRoot({ enableWorker: true }),
+    { bufferLogs: true },
+  );
   const logger = app.get(Logger);
   app.useLogger(logger);
   logger.log('Worker process started');
