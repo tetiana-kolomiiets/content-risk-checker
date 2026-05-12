@@ -225,7 +225,6 @@ export class ContentRiskChecksPipelineService {
       if (!(err instanceof UniqueConstraintError)) throw err;
     }
 
-    // Race lost: another concurrent pipeline finalized first. Adopt its result.
     const winner = await this.checksRepo.findActiveByContentHash(
       contentHash,
       promptVersionId,

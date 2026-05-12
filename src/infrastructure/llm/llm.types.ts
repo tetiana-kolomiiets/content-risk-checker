@@ -10,6 +10,7 @@ export interface LlmCompletionOutput {
   content: string;
   tokensIn: number;
   tokensOut: number;
+  finishReason: string | null;
 }
 
 export interface LlmClient {

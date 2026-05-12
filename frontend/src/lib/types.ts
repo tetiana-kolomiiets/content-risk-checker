@@ -25,7 +25,8 @@ export type StepName =
   | 'RUN_RULE_BASED_CHECKS'
   | 'RETRIEVE_AI_CONTEXT'
   | 'RUN_AI_ANALYSIS'
-  | 'AGGREGATE_RESULT';
+  | 'AGGREGATE_RESULT'
+  | 'PERSIST_AI_MEMORY';
 
 export type StepStatus = 'STARTED' | 'COMPLETED' | 'FAILED' | 'SKIPPED';
 
@@ -75,7 +76,7 @@ export interface StepLog {
   startedAt: string;
   finishedAt: string | null;
   durationMs: number | null;
-  details: Record<string, unknown>;
+  details: Record<string, unknown> | null;
   errorCode: string | null;
   errorMessage: string | null;
 }

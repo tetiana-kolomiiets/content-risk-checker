@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
+import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PinoLogger } from 'nestjs-pino';
 import { ContentRiskCategory } from '../../../../../../domain/content-risk-checks/enums/content-risk-category.enum';
@@ -46,7 +47,8 @@ const buildLlmResponse = (
   content: string,
   tokensIn = 100,
   tokensOut = 50,
-): LlmCompletionOutput => ({ content, tokensIn, tokensOut });
+  finishReason: string | null = 'stop',
+): LlmCompletionOutput => ({ content, tokensIn, tokensOut, finishReason });
 
 const ctx: StepContext = {
   checkId: CHECK_ID,
@@ -64,6 +66,7 @@ describe('AiAnalysisStep', () => {
   let step: AiAnalysisStep;
   let llm: jest.Mocked<LlmClient>;
   let promptsRepo: jest.Mocked<PromptsRepository>;
+  let configGet: jest.Mock;
 
   beforeEach(async () => {
     llm = { complete: jest.fn() };
@@ -72,12 +75,18 @@ describe('AiAnalysisStep', () => {
       getById: jest.fn(),
       invalidateCache: jest.fn(),
     };
+    configGet = jest.fn((key: string) => {
+      if (key === 'LLM_VALIDATION_MAX_ATTEMPTS') return 2;
+      if (key === 'LLM_MAX_TOKENS') return 2048;
+      return undefined;
+    });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AiAnalysisStep,
         { provide: LLM_CLIENT, useValue: llm },
         { provide: PROMPTS_REPOSITORY, useValue: promptsRepo },
+        { provide: ConfigService, useValue: { get: configGet } },
         {
           provide: PinoLogger,
           useValue: {
@@ -254,6 +263,55 @@ describe('AiAnalysisStep', () => {
     );
 
     expect(llm.complete.mock.calls[0][0].user).toContain('Flags: HATE, THREAT');
+  });
+
+  it('passes LLM_MAX_TOKENS as maxTokens on first attempt', async () => {
+    promptsRepo.getById.mockResolvedValue(buildPrompt());
+    llm.complete.mockResolvedValueOnce(
+      buildLlmResponse(JSON.stringify(validAiOutput)),
+    );
+
+    await step.execute(input, ctx);
+
+    expect(llm.complete.mock.calls[0][0].maxTokens).toBe(2048);
+  });
+
+  it('doubles maxTokens and uses truncation-specific prompt on retry when finish_reason=length', async () => {
+    promptsRepo.getById.mockResolvedValue(buildPrompt());
+    llm.complete
+      .mockResolvedValueOnce(
+        buildLlmResponse('{"finalLevel":"MED', 50, 2048, 'length'),
+      )
+      .mockResolvedValueOnce(
+        buildLlmResponse(JSON.stringify(validAiOutput), 60, 80),
+      );
+
+    const result = await step.execute(input, ctx);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(llm.complete).toHaveBeenCalledTimes(2);
+    expect(llm.complete.mock.calls[0][0].maxTokens).toBe(2048);
+    expect(llm.complete.mock.calls[1][0].maxTokens).toBe(4096);
+    const secondMsg = llm.complete.mock.calls[1][0].user;
+    expect(secondMsg).toContain('cut off at the token limit');
+    expect(secondMsg).not.toContain('failed validation');
+    expect(result.details).toMatchObject({ attempts: 2 });
+  });
+
+  it('returns AI_RESPONSE_TRUNCATED when truncation persists across attempts', async () => {
+    promptsRepo.getById.mockResolvedValue(buildPrompt());
+    llm.complete
+      .mockResolvedValueOnce(buildLlmResponse('{"final', 50, 2048, 'length'))
+      .mockResolvedValueOnce(buildLlmResponse('{"final', 50, 4096, 'length'));
+
+    const result = await step.execute(input, ctx);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('AI_RESPONSE_TRUNCATED');
+    expect(llm.complete).toHaveBeenCalledTimes(2);
+    expect(llm.complete.mock.calls[1][0].maxTokens).toBe(4096);
   });
 
   it('reports schema-violation messages from zod on second attempt prompt', async () => {

@@ -66,9 +66,16 @@ export const api = {
     return request<HealthStatus>('/health');
   },
 
-  listChecks(filters?: { status?: string }): Promise<{ items: Check[] }> {
-    const qs = filters?.status ? `?status=${filters.status}` : '';
-    return request<{ items: Check[] }>(`/content-risk-checks${qs}`);
+  listChecks(filters?: { status?: string; include?: string[] }): Promise<{ items: Check[] }> {
+    const params = new URLSearchParams();
+    if (filters?.status) {
+      params.set('status', filters.status);
+    }
+    if (filters?.include?.length) {
+      params.set('include', filters.include.join(','));
+    }
+    const qs = params.toString();
+    return request<{ items: Check[] }>(`/content-risk-checks${qs ? `?${qs}` : ''}`);
   },
 
   getCheck(id: string): Promise<Check> {

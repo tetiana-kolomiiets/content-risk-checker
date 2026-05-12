@@ -7,6 +7,7 @@ import {
   FiCopy,
   FiCpu,
   FiDatabase,
+  FiSave,
 } from 'react-icons/fi';
 import { formatDuration } from '@/lib/format';
 import type { StepLog, StepName, StepStatus } from '@/lib/types';
@@ -19,6 +20,7 @@ const STEP_META: Record<StepName, { label: string; Icon: ComponentType<{ classNa
   RETRIEVE_AI_CONTEXT: { label: 'Retrieve context', Icon: FiDatabase },
   RUN_AI_ANALYSIS: { label: 'AI analysis', Icon: FiCpu },
   AGGREGATE_RESULT: { label: 'Aggregate result', Icon: FiBarChart2 },
+  PERSIST_AI_MEMORY: { label: 'Persist AI memory', Icon: FiSave },
 };
 
 export function PipelineTimeline({ logs }: { logs: StepLog[] }) {
@@ -39,7 +41,7 @@ function StepRow({ log }: { log: StepLog }) {
     return null;
   }
 
-  const hasDetails = Object.keys(log.details).length > 0;
+  const hasDetails = log.details != null && Object.keys(log.details).length > 0;
   const { Icon, label } = meta;
 
   return (

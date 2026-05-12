@@ -84,6 +84,7 @@ const respondValid = (): LlmCompletionOutput => ({
   content: JSON.stringify(VALID_AI_RESPONSE),
   tokensIn: 50,
   tokensOut: 25,
+  finishReason: 'stop',
 });
 
 describe('Content risk checks (e2e)', () => {
@@ -187,6 +188,7 @@ describe('Content risk checks (e2e)', () => {
       content: 'not even json',
       tokensIn: 5,
       tokensOut: 5,
+      finishReason: 'stop',
     });
 
     const post = await request(server)

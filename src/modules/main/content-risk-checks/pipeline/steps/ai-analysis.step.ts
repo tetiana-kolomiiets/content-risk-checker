@@ -1,5 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PinoLogger } from 'nestjs-pino';
+import type { EnvConfig } from '../../../../../config/env.schema';
 import { ContentRiskCategory } from '../../../../../domain/content-risk-checks/enums/content-risk-category.enum';
 import { ContentRiskStepName } from '../../../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
 import {
@@ -37,6 +39,7 @@ export class AiAnalysisStep implements PipelineStep<
   constructor(
     @Inject(LLM_CLIENT) private readonly llm: LlmClient,
     @Inject(PROMPTS_REPOSITORY) private readonly promptsRepo: PromptsRepository,
+    private readonly config: ConfigService<EnvConfig, true>,
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(AiAnalysisStep.name);
@@ -98,14 +101,21 @@ export class AiAnalysisStep implements PipelineStep<
       .replace('{rule_flags}', input.ruleFlags.join(', ') || 'none');
 
     let lastError: string | null = null;
+    let lastFailureKind: 'validation' | 'truncation' = 'validation';
     let totalTokensIn = 0;
     let totalTokensOut = 0;
+    const maxAttempts = this.config.get('LLM_VALIDATION_MAX_ATTEMPTS', {
+      infer: true,
+    });
+    let currentMaxTokens = this.config.get('LLM_MAX_TOKENS', { infer: true });
 
-    for (let attempt = 1; attempt <= 2; attempt++) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       const userMessage =
         attempt === 1
           ? userText
-          : `${userText}\n\nYour previous response failed validation: ${lastError}.\nReturn ONLY valid JSON matching the schema. No prose, no markdown fences.`;
+          : lastFailureKind === 'truncation'
+            ? `${userText}\n\nYour previous response was cut off at the token limit. Be concise: keep rationale and flagged fragments brief. Return ONLY valid JSON matching the schema. No prose, no markdown fences.`
+            : `${userText}\n\nYour previous response failed validation: ${lastError}.\nReturn ONLY valid JSON matching the schema. No prose, no markdown fences.`;
 
       let llmResp: LlmCompletionOutput;
       try {
@@ -114,6 +124,7 @@ export class AiAnalysisStep implements PipelineStep<
           user: userMessage,
           model: prompt.model,
           temperature: 0,
+          maxTokens: currentMaxTokens,
         });
       } catch (e) {
         return this.fail(
@@ -128,16 +139,29 @@ export class AiAnalysisStep implements PipelineStep<
       totalTokensIn += llmResp.tokensIn;
       totalTokensOut += llmResp.tokensOut;
 
+      if (llmResp.finishReason === 'length') {
+        lastFailureKind = 'truncation';
+        lastError = `Response truncated at ${currentMaxTokens} tokens`;
+        this.logger.warn(
+          { checkId: ctx.checkId, attempt, maxTokens: currentMaxTokens },
+          'AI response truncated by max_tokens, will retry with doubled limit',
+        );
+        currentMaxTokens = Math.min(currentMaxTokens * 2, 16384);
+        continue;
+      }
+
       let parsed: unknown;
       try {
         parsed = JSON.parse(llmResp.content);
       } catch (e) {
+        lastFailureKind = 'validation';
         lastError = `JSON.parse failed: ${(e as Error).message}`;
         continue;
       }
 
       const zodResult = AiAnalysisOutputSchema.safeParse(parsed);
       if (!zodResult.success) {
+        lastFailureKind = 'validation';
         lastError = zodResult.error.issues
           .map((i) => `${i.path.join('.')}: ${i.message}`)
           .join('; ');
@@ -161,9 +185,19 @@ export class AiAnalysisStep implements PipelineStep<
       };
     }
 
+    if (lastFailureKind === 'truncation') {
+      return this.fail(
+        'AI_RESPONSE_TRUNCATED',
+        `Response truncated after ${maxAttempts} attempts. Last limit: ${currentMaxTokens / 2} tokens`,
+        prompt.version,
+        totalTokensIn,
+        totalTokensOut,
+      );
+    }
+
     return this.fail(
       'AI_VALIDATION_FAILED',
-      `Failed schema validation after 2 attempts. Last error: ${lastError}`,
+      `Failed schema validation after ${maxAttempts} attempts. Last error: ${lastError}`,
       prompt.version,
       totalTokensIn,
       totalTokensOut,

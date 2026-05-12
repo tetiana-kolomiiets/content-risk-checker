@@ -80,6 +80,7 @@ export class OpenRouterClient implements LlmClient {
         content: choice.message.content,
         tokensIn,
         tokensOut,
+        finishReason: choice.finish_reason ?? null,
       };
     } catch (err) {
       const e = err as { status?: number; message: string };

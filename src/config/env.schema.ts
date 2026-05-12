@@ -20,6 +20,8 @@ export const envSchema = z.object({
   OPENROUTER_APP_URL: z.string().url().default('http://localhost:3000'),
   LLM_MODEL: z.string().default('anthropic/claude-opus-4-5'),
   LLM_TIMEOUT_MS: z.coerce.number().int().min(1000).default(15000),
+  LLM_MAX_TOKENS: z.coerce.number().int().min(256).max(16384).default(2048),
+  LLM_VALIDATION_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(5).default(2),
 
   AI_MEMORY_ENABLED: z.coerce.boolean().default(true),
   AI_MEMORY_TOP_N: z.coerce.number().int().min(0).max(10).default(3),
@@ -33,7 +35,7 @@ export const envSchema = z.object({
   LOG_PRETTY: z.stringbool().default(false),
 
   THROTTLE_TTL_MS: z.coerce.number().int().positive().default(60000),
-  THROTTLE_LIMIT: z.coerce.number().int().positive().default(10),
+  THROTTLE_LIMIT: z.coerce.number().int().positive().default(60),
 
   CORS_ORIGINS: z.string().default('http://localhost:5173'),
 });

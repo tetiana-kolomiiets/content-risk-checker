@@ -10,6 +10,7 @@ const PIPELINE_STEPS: { name: StepName; label: string }[] = [
   { name: 'RETRIEVE_AI_CONTEXT', label: 'Retrieve context' },
   { name: 'RUN_AI_ANALYSIS', label: 'AI analysis' },
   { name: 'AGGREGATE_RESULT', label: 'Aggregate result' },
+  { name: 'PERSIST_AI_MEMORY', label: 'Persist AI memory' },
 ];
 
 type TimelineStepStatus = 'pending' | 'active' | 'done' | 'failed' | 'skipped';

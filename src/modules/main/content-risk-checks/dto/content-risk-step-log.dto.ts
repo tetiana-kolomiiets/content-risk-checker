@@ -9,6 +9,9 @@ export class ContentRiskStepLogDto {
   @ApiProperty()
   checkId: string;
 
+  @ApiProperty()
+  traceId: string;
+
   @ApiProperty({ enum: ContentRiskStepName })
   stepName: ContentRiskStepName;
 

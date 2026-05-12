@@ -87,7 +87,7 @@ export function NewCheckForm({ hasExistingChecks }: NewCheckFormProps) {
     <div className="rounded-lg border border-border bg-surface p-8">
       <h1 className="mb-2 text-2xl font-medium">Analyze content for risk</h1>
       <p className="mb-6 text-text-secondary">
-        Paste any text - forum post, comment, message - and the pipeline will analyze it across 9 risk
+        Paste any text - forum post, comment, message - and the pipeline will analyze it across 8 risk
         categories.
       </p>
 

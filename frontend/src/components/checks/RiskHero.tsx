@@ -15,26 +15,6 @@ const COLORS: Record<RiskLevel, string> = {
   HIGH: 'text-risk-high',
 };
 
-const FILL_COLORS: Record<RiskLevel, string> = {
-  LOW: 'bg-risk-low',
-  MEDIUM: 'bg-risk-medium',
-  HIGH: 'bg-risk-high',
-};
-
-function scoreToPercent(level: RiskLevel, matchedRulesCount: number, totalRulesChecked: number): number {
-  if (totalRulesChecked === 0) {
-    if (level === 'LOW') {
-      return 15;
-    }
-    if (level === 'MEDIUM') {
-      return 50;
-    }
-    return 85;
-  }
-
-  return Math.round((matchedRulesCount / totalRulesChecked) * 100);
-}
-
 function categoryLabel(category: string): string {
   return category.toLowerCase().replace('_', ' ');
 }
@@ -42,8 +22,6 @@ function categoryLabel(category: string): string {
 export function RiskHero({ result }: { result: AnalysisResult }) {
   const Icon = ICONS[result.finalRiskLevel];
   const colorClass = COLORS[result.finalRiskLevel];
-  const fillClass = FILL_COLORS[result.finalRiskLevel];
-  const scorePercent = scoreToPercent(result.finalRiskLevel, result.matchedRulesCount, result.totalRulesChecked);
 
   return (
     <div className="p-6">
@@ -52,15 +30,6 @@ export function RiskHero({ result }: { result: AnalysisResult }) {
         {result.finalRiskLevel === 'LOW' && 'Low risk'}
         {result.finalRiskLevel === 'MEDIUM' && 'Medium risk'}
         {result.finalRiskLevel === 'HIGH' && 'High risk'}
-      </div>
-
-      <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-border-subtle">
-        <div className={`h-full rounded-full transition-all ${fillClass}`} style={{ width: `${scorePercent}%` }} />
-      </div>
-
-      <div className="mt-1.5 flex items-center justify-between text-xs text-text-secondary">
-        <span>Score</span>
-        <span className="font-mono">{scorePercent} / 100</span>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-1.5">

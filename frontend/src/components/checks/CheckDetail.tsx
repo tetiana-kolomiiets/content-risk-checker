@@ -26,11 +26,18 @@ export function CheckDetail({ checkId, onCheckLoaded }: CheckDetailProps) {
 
   useEffect(() => {
     let isCancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let isInitialLoad = true;
     setIsLoading(true);
     setError(null);
 
-    Promise.all([api.getCheck(checkId), api.getLogs(checkId).catch(() => [])])
-      .then(([fetchedCheck, fetchedLogs]) => {
+    async function fetchCheck() {
+      try {
+        const [fetchedCheck, fetchedLogs] = await Promise.all([
+          api.getCheck(checkId),
+          api.getLogs(checkId).catch(() => []),
+        ]);
+
         if (isCancelled) {
           return;
         }
@@ -38,20 +45,30 @@ export function CheckDetail({ checkId, onCheckLoaded }: CheckDetailProps) {
         setCheck(fetchedCheck);
         setLogs(fetchedLogs);
         onCheckLoaded?.(fetchedCheck);
-      })
-      .catch(() => {
-        if (!isCancelled) {
+
+        const isTerminal = fetchedCheck.status === 'COMPLETED' || fetchedCheck.status === 'FAILED';
+        if (!isTerminal) {
+          timeoutId = setTimeout(fetchCheck, 1500);
+        }
+      } catch {
+        if (!isCancelled && isInitialLoad) {
           setError('Failed to load check');
         }
-      })
-      .finally(() => {
-        if (!isCancelled) {
+      } finally {
+        if (!isCancelled && isInitialLoad) {
           setIsLoading(false);
+          isInitialLoad = false;
         }
-      });
+      }
+    }
+
+    fetchCheck();
 
     return () => {
       isCancelled = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
   }, [checkId, onCheckLoaded]);
 
@@ -171,7 +188,7 @@ export function CheckDetail({ checkId, onCheckLoaded }: CheckDetailProps) {
       )}
 
       <div className="border-t border-border px-6 py-4">
-        <div className="mb-3 text-sm font-medium text-text-secondary">Pipeline ({logs.length} steps)</div>
+        <div className="mb-3 text-sm font-medium text-text-secondary">Pipeline</div>
         <PipelineTimeline logs={logs} />
       </div>
 

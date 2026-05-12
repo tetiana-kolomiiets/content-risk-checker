@@ -25,7 +25,10 @@ export function Sidebar() {
 
     async function loadChecks() {
       try {
-        const response = await api.listChecks(filter === 'ALL' ? {} : { status: filter });
+        const response = await api.listChecks({
+          include: ['rawText'],
+          ...(filter === 'ALL' ? {} : { status: filter }),
+        });
         if (cancelled) {
           return;
         }
