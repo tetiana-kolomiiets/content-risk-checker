@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { OnboardingModal } from './components/common/OnboardingModal';
 import { Layout } from './components/layout/Layout';
-import { useToast } from './components/ui/Toast';
+import { useToast } from './components/ui/toast-context';
 import { getRateLimitCountdownSteps, setApiErrorNotifier } from './lib/api';
 import { ApiError } from './lib/types';
 import { CheckPage } from './routes/CheckPage';
@@ -11,14 +11,11 @@ import { NotFoundPage } from './routes/NotFoundPage';
 
 function App() {
   const { toast } = useToast();
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(
+    () => window.localStorage.getItem('crc_onboarded') !== '1',
+  );
   const countdownTimeoutsRef = useRef<number[]>([]);
   const lastErrorToastAtRef = useRef(0);
-
-  useEffect(() => {
-    const wasOnboarded = window.localStorage.getItem('crc_onboarded') === '1';
-    setIsOnboardingOpen(!wasOnboarded);
-  }, []);
 
   useEffect(() => {
     setApiErrorNotifier((error) => {

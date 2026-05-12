@@ -1,29 +1,17 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { FiAlertCircle, FiCheckCircle, FiInfo, FiX } from 'react-icons/fi';
-
-type ToastVariant = 'info' | 'error' | 'success';
-
-interface ToastOptions {
-  message: string;
-  variant: ToastVariant;
-  duration?: number;
-}
+import { ToastContext } from './toast-context';
+import type { ToastOptions, ToastVariant } from './toast-context';
 
 interface ToastItem extends ToastOptions {
   id: string;
   isExiting: boolean;
 }
 
-interface ToastContextValue {
-  toast: (options: ToastOptions) => void;
-}
-
 const MAX_VISIBLE_TOASTS = 3;
 const EXIT_ANIMATION_MS = 220;
 const DEFAULT_DURATION_MS = 4000;
-
-const ToastContext = createContext<ToastContextValue | null>(null);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
@@ -74,9 +62,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
+    const timeoutMap = timeoutMapRef.current;
     return () => {
-      timeoutMapRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
-      timeoutMapRef.current.clear();
+      timeoutMap.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      timeoutMap.clear();
     };
   }, []);
 
@@ -94,30 +83,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useToast(): ToastContextValue {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error('useToast must be used within ToastProvider');
-  }
-
-  return context;
-}
-
 function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: (id: string) => void }) {
   const cardClass = getCardClass(item.variant);
   const textClass = getTextClass(item.variant);
-  const Icon = getToastIcon(item.variant);
-  const isExiting = item.isExiting;
+  const iconClass = `mt-0.5 h-4 w-4 flex-shrink-0 ${textClass}`;
 
   return (
     <div
       role="status"
       aria-live="polite"
       className={`pointer-events-auto flex items-start gap-3 rounded-md border bg-surface px-3 py-2 shadow-sm transition-all duration-200 ${cardClass} ${
-        isExiting ? 'translate-y-2 opacity-0' : 'translate-y-0 opacity-100'
+        item.isExiting ? 'translate-y-2 opacity-0' : 'translate-y-0 opacity-100'
       }`}
     >
-      <Icon className={`mt-0.5 h-4 w-4 flex-shrink-0 ${textClass}`} aria-hidden="true" />
+      {renderToastIcon(item.variant, iconClass)}
       <p className={`flex-1 text-sm ${textClass}`}>{item.message}</p>
       <button
         type="button"
@@ -151,12 +130,12 @@ function getTextClass(variant: ToastVariant): string {
   return 'text-info';
 }
 
-function getToastIcon(variant: ToastVariant) {
+function renderToastIcon(variant: ToastVariant, className: string) {
   if (variant === 'error') {
-    return FiAlertCircle;
+    return <FiAlertCircle className={className} aria-hidden="true" />;
   }
   if (variant === 'success') {
-    return FiCheckCircle;
+    return <FiCheckCircle className={className} aria-hidden="true" />;
   }
-  return FiInfo;
+  return <FiInfo className={className} aria-hidden="true" />;
 }

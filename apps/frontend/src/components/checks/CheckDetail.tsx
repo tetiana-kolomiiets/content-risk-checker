@@ -8,7 +8,7 @@ import type { Check, CheckStatus, StepLog } from '@/lib/types';
 import { MetadataPanel } from './MetadataPanel';
 import { PipelineTimeline } from './PipelineTimeline';
 import { RiskHero } from './RiskHero';
-import { useToast } from '../ui/Toast';
+import { useToast } from '../ui/toast-context';
 
 interface CheckDetailProps {
   checkId: string;
@@ -28,10 +28,12 @@ export function CheckDetail({ checkId, onCheckLoaded }: CheckDetailProps) {
     let isCancelled = false;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     let isInitialLoad = true;
-    setIsLoading(true);
-    setError(null);
 
     async function fetchCheck() {
+      if (isInitialLoad) {
+        setIsLoading(true);
+        setError(null);
+      }
       try {
         const [fetchedCheck, fetchedLogs] = await Promise.all([
           api.getCheck(checkId),

@@ -6,7 +6,12 @@ import type { Check } from '@/lib/types';
 
 export function MetadataPanel({ check }: { check: Check }) {
   const isProcessing = check.status === 'PROCESSING';
-  const hasRetries = check.retryCount > 0;
+  const retryHighlight: 'ok' | 'warn' | undefined =
+    check.retryCount === 0
+      ? undefined
+      : check.retryCount === 1
+        ? 'ok'
+        : 'warn';
 
   const promptDisplay = check.promptVersion
     ? `${check.promptVersion.name}@v${check.promptVersion.version}`
@@ -38,7 +43,7 @@ export function MetadataPanel({ check }: { check: Check }) {
       <Row
         label="Retry count"
         value={`${check.retryCount} / ${check.maxRetries}`}
-        highlight={hasRetries ? 'warn' : undefined}
+        highlight={retryHighlight}
       />
       {durationMs !== null && (
         <Row label="Duration" value={formatDuration(durationMs)} mono />
@@ -92,7 +97,7 @@ interface RowProps {
   copyable?: boolean;
   linkTo?: string;
   relativeDate?: boolean;
-  highlight?: 'warn' | 'info';
+  highlight?: 'warn' | 'info' | 'ok';
 }
 
 function Row({
@@ -123,7 +128,9 @@ function Row({
       ? 'text-risk-medium font-medium'
       : highlight === 'info'
         ? 'text-accent font-medium'
-        : '';
+        : highlight === 'ok'
+          ? 'text-risk-low font-medium'
+          : '';
 
   return (
     <>

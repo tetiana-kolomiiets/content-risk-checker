@@ -4,40 +4,52 @@ Backend service that analyzes text for content risk (toxicity, spam, hate speech
 
 **Stack:** NestJS 11, TypeScript, PostgreSQL 15 + pgvector, Prisma, BullMQ + Redis, Pino, Zod. Frontend: React 19 + Vite + Tailwind.
 
+This repository is a **yarn workspaces monorepo**:
+
+- [apps/backend/](apps/backend/) — NestJS backend (HTTP API + worker)
+- [apps/frontend/](apps/frontend/) — React + Vite frontend
+
+A single `yarn.lock` at the root covers both workspaces; both use yarn.
+
 ## Quickstart (full stack in one command)
 
 ```bash
 docker-compose up -d
 yarn install
-yarn frontend:install
-cp .env.example .env          # set OPENROUTER_API_KEY (https://openrouter.ai/keys)
+cp apps/backend/.env.example apps/backend/.env   # set OPENROUTER_API_KEY (https://openrouter.ai/keys)
 yarn prisma:migrate
 yarn prisma:seed
-yarn dev                      # runs backend + frontend together
+yarn dev                                         # runs backend + frontend together
 ```
 
 - Backend Swagger: [http://localhost:3000/api](http://localhost:3000/api)
 - Frontend: [http://localhost:5173](http://localhost:5173)
 
-## Scripts
+## Scripts (run from repo root)
 
 ### Run
 
 | Script | Purpose |
 |---|---|
-| `yarn dev` | Run backend (watch) + frontend (vite) together via `concurrently` |
-| `yarn start:dev` | Backend only, watch mode (combined HTTP + worker) |
-| `yarn frontend:dev` | Frontend only (`cd frontend && npm run dev`) |
-| `yarn start:all` | HTTP + worker in one prod-built process (requires `yarn build` first) |
-| `yarn start:api` | HTTP only, prod build (requires `yarn build` first) |
-| `yarn start:worker` | Worker only, prod build (requires `yarn build` first) |
+| `yarn dev` | Backend (watch) + frontend (vite) together via `concurrently` |
+| `yarn backend:dev` | Backend only, watch mode (combined HTTP + worker) |
+| `yarn frontend:dev` | Frontend only (vite dev server) |
 
-### Build & install
+For production-style backend processes (after `yarn backend:build`), run them inside `apps/backend/`:
+
+```bash
+cd apps/backend
+node dist/main.api.js       # HTTP only
+node dist/main.worker.js    # worker only
+node dist/main.js           # HTTP + worker in one process
+```
+
+### Build
 
 | Script | Purpose |
 |---|---|
-| `yarn build` | Compile TypeScript via `nest build` (outputs to `dist/`) |
-| `yarn frontend:install` | `cd frontend && npm install` |
+| `yarn backend:build` | Compile backend TypeScript via `nest build` (output: `apps/backend/dist/`) |
+| `yarn frontend:build` | Build frontend for production (output: `apps/frontend/dist/`) |
 
 ### Database
 
@@ -51,9 +63,10 @@ yarn dev                      # runs backend + frontend together
 
 | Script | Purpose |
 |---|---|
-| `yarn lint` | Run ESLint with `--fix` |
-| `yarn test` | Run unit tests (`*.spec.ts` under `src/`) |
-| `yarn test:e2e` | Run end-to-end tests (requires test infra, see Testing) |
+| `yarn backend:lint` | ESLint backend with `--fix` |
+| `yarn frontend:lint` | ESLint frontend |
+| `yarn backend:test` | Run backend unit tests (`*.spec.ts` under `apps/backend/src/`) |
+| `yarn backend:test:e2e` | Run backend e2e tests (requires test infra, see Testing) |
 
 ## API Reference
 
@@ -80,15 +93,15 @@ curl -X POST http://localhost:3000/api/v1/content-risk-checks \
 ## Testing
 
 ```bash
-yarn test                  # unit tests
-yarn test:e2e              # end-to-end (needs test infra up, see below)
+yarn backend:test          # unit tests
+yarn backend:test:e2e      # end-to-end (needs test infra up, see below)
 ```
 
 For e2e:
 
 ```bash
 docker-compose -f docker-compose.test.yml up -d
-yarn test:e2e
+yarn backend:test:e2e
 ```
 
 The LLM client is overridden in e2e tests, so no real OpenRouter calls are made.
