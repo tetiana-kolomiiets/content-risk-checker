@@ -1,99 +1,25 @@
 {
   "name": "content-risk-checker",
-  "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "version": "1.0.0",
   "private": true,
-  "license": "UNLICENSED",
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
-    "build": "nest build",
-    "start:dev": "nest start --watch",
-    "start:api": "node dist/main.api.js",
-    "start:worker": "node dist/main.worker.js",
-    "start:all": "node dist/main.js",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "prisma db seed",
-    "test": "jest",
-    "test:e2e": "jest --config test/jest-e2e.json --runInBand",
-    "lint": "eslint \"src/**/*.ts\" --fix",
-    "frontend:install": "cd frontend && npm install",
-    "frontend:dev": "cd frontend && npm run dev",
-    "dev": "concurrently -n api,web -c blue,green \"yarn start:dev\" \"yarn frontend:dev\""
-  },
-  "prisma": {
-    "seed": "ts-node prisma/seed.ts"
-  },
-  "dependencies": {
-    "@nestjs/bullmq": "^11.0.4",
-    "@nestjs/common": "^11.0.1",
-    "@nestjs/config": "^4.0.4",
-    "@nestjs/core": "^11.0.1",
-    "@nestjs/platform-express": "^11.0.1",
-    "@nestjs/swagger": "^11.4.1",
-    "@nestjs/terminus": "^11.1.1",
-    "@nestjs/throttler": "^6.5.0",
-    "@prisma/adapter-pg": "^7.8.0",
-    "@prisma/client": "^7.8.0",
-    "bullmq": "^5.76.1",
-    "class-transformer": "^0.5.1",
-    "class-validator": "^0.15.1",
-    "helmet": "^8.1.0",
-    "ioredis": "^5.10.1",
-    "nestjs-pino": "^4.6.1",
-    "openai": "^6.36.0",
-    "pg": "^8.20.0",
-    "pino": "^10.3.1",
-    "pino-http": "^11.0.0",
-    "pino-pretty": "^13.1.3",
-    "prisma": "^7.8.0",
-    "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1",
-    "swagger-ui-express": "^5.0.1",
-    "uuid": "^14.0.0",
-    "zod": "^4.4.1"
+    "backend:dev": "cd apps/backend && nest start --watch",
+    "backend:build": "cd apps/backend && nest build",
+    "backend:test": "cd apps/backend && jest",
+    "backend:test:e2e": "cd apps/backend && jest --config test/jest-e2e.json --runInBand",
+    "backend:lint": "cd apps/backend && eslint \"src/**/*.ts\" --fix",
+    "frontend:dev": "cd apps/frontend && vite",
+    "frontend:build": "cd apps/frontend && tsc -b && vite build",
+    "frontend:lint": "cd apps/frontend && eslint .",
+    "dev": "concurrently -n api,web -c blue,green \"npm:backend:dev\" \"npm:frontend:dev\"",
+    "prisma:generate": "cd apps/backend && prisma generate",
+    "prisma:migrate": "cd apps/backend && prisma migrate dev",
+    "prisma:seed": "cd apps/backend && prisma db seed"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.2.0",
-    "@eslint/js": "^9.18.0",
-    "@nestjs/cli": "^11.0.0",
-    "@nestjs/schematics": "^11.0.0",
-    "@nestjs/testing": "^11.0.1",
-    "@types/express": "^5.0.0",
-    "@types/jest": "^30.0.0",
-    "@types/node": "^22.10.7",
-    "@types/supertest": "^6.0.2",
-    "concurrently": "^9.0.0",
-    "eslint": "^9.18.0",
-    "eslint-config-prettier": "^10.0.1",
-    "eslint-plugin-prettier": "^5.2.2",
-    "globals": "^16.0.0",
-    "jest": "^30.0.0",
-    "prettier": "^3.4.2",
-    "source-map-support": "^0.5.21",
-    "supertest": "^7.0.0",
-    "ts-jest": "^29.2.5",
-    "ts-loader": "^9.5.2",
-    "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.7.3",
-    "typescript-eslint": "^8.20.0"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "concurrently": "^9.0.0"
   }
 }
