@@ -79,7 +79,7 @@ export const api = {
   },
 
   getCheck(id: string): Promise<Check> {
-    return request<Check>(`/content-risk-checks/${id}`);
+    return request<Check>(`/content-risk-checks/${id}?include=rawText`);
   },
 
   getLogs(id: string): Promise<StepLog[]> {

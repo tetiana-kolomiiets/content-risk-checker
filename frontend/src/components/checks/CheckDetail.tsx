@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FiAlertCircle, FiCopy, FiRotateCcw } from 'react-icons/fi';
+import { FiAlertCircle, FiChevronDown, FiCopy, FiRotateCcw } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
 import { api } from '@/lib/api';
@@ -162,6 +162,8 @@ export function CheckDetail({ checkId, onCheckLoaded }: CheckDetailProps) {
 
       {hasResult && <RiskHero result={result} />}
 
+      {check.rawText && <OriginalContent rawText={check.rawText} />}
+
       {hasRationale && (
         <div className="border-t border-border px-6 py-4">
           <div className="mb-2 text-sm font-medium text-text-secondary">AI rationale</div>
@@ -219,6 +221,40 @@ export function CheckDetail({ checkId, onCheckLoaded }: CheckDetailProps) {
           Copy ID
         </button>
       </div>
+    </div>
+  );
+}
+
+const PREVIEW_CHAR_LIMIT = 280;
+const PREVIEW_LINE_LIMIT = 5;
+
+function OriginalContent({ rawText }: { rawText: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const lineCount = rawText.split('\n').length;
+  const isLong = rawText.length > PREVIEW_CHAR_LIMIT || lineCount > PREVIEW_LINE_LIMIT;
+
+  const preview =
+    isLong && !expanded
+      ? rawText.split('\n').slice(0, PREVIEW_LINE_LIMIT).join('\n').slice(0, PREVIEW_CHAR_LIMIT)
+      : rawText;
+
+  return (
+    <div className="border-t border-border px-6 py-4">
+      <div className="mb-2 text-sm font-medium text-text-secondary">Original content</div>
+      <pre className="whitespace-pre-wrap break-words rounded border border-border-subtle bg-bg p-3 font-mono text-sm text-text-primary">
+        {preview}
+        {isLong && !expanded && <span className="text-text-tertiary">…</span>}
+      </pre>
+      {isLong && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-2 flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary"
+        >
+          <FiChevronDown className={`h-3 w-3 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+          {expanded ? 'Hide' : 'Show more'}
+        </button>
+      )}
     </div>
   );
 }
