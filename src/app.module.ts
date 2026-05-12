@@ -60,7 +60,9 @@ export class AppModule implements NestModule {
               serializers: {
                 req: pino.stdSerializers.req,
                 res: pino.stdSerializers.res,
-                err: (err: Error & { cause?: unknown; prismaCode?: string }) => {
+                err: (
+                  err: Error & { cause?: unknown; prismaCode?: string },
+                ) => {
                   const base = pino.stdSerializers.err(err) as Record<
                     string,
                     unknown
@@ -90,7 +92,9 @@ export class AppModule implements NestModule {
         LlmModule,
         EmbeddingModule,
         HealthModule,
-        ContentRiskChecksModule.register({ enableWorker: options.enableWorker }),
+        ContentRiskChecksModule.register({
+          enableWorker: options.enableWorker,
+        }),
         PromptsModule,
         AiMemoryModule,
       ],

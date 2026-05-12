@@ -15,7 +15,11 @@ const TEST_BLACKLIST: BlacklistRule[] = [
     id: 'placeholder_toxicity',
     category: ContentRiskCategory.TOXICITY,
     weight: 0.3,
-    words: ['placeholder_toxic_a', 'placeholder_toxic_b', 'placeholder_toxic_c'],
+    words: [
+      'placeholder_toxic_a',
+      'placeholder_toxic_b',
+      'placeholder_toxic_c',
+    ],
   },
   {
     id: 'placeholder_hate',

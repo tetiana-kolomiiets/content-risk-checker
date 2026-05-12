@@ -684,7 +684,6 @@ describe('ContentRiskChecksPipelineService (PipelineRunner)', () => {
 
     await runner.run(CHECK_ID, TRACE_ID);
 
-
     expect(analysisResultsRepo.delete).not.toHaveBeenCalled();
     expect(analysisResultsRepo.upsertByCheckId).toHaveBeenCalledWith(
       expect.objectContaining({

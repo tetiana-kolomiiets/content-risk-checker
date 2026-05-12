@@ -8,8 +8,8 @@ const captureLogs = (): {
 } => {
   const chunks: string[] = [];
   const stream = new Writable({
-    write(chunk, _enc, cb) {
-      chunks.push(chunk.toString());
+    write(chunk: Buffer | string, _enc, cb) {
+      chunks.push(typeof chunk === 'string' ? chunk : chunk.toString('utf-8'));
       cb();
     },
   });

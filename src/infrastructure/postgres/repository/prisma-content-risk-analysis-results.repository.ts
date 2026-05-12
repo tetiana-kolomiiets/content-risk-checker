@@ -48,8 +48,8 @@ export class PrismaContentRiskAnalysisResultsRepository implements ContentRiskAn
           categories: data.categories,
           matchedRulesCount: data.matchedRulesCount,
           totalRulesChecked: data.totalRulesChecked,
-          flaggedFragments: flaggedFragments as Prisma.InputJsonValue,
-          matchedRules: matchedRules as Prisma.InputJsonValue,
+          flaggedFragments: flaggedFragments,
+          matchedRules: matchedRules,
           summary: data.summary,
         },
       });

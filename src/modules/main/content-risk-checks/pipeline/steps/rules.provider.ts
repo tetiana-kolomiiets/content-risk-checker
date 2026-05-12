@@ -34,10 +34,15 @@ export class RulesProvider implements OnModuleInit {
     const rules: BlacklistRule[] = [];
     for (const file of files) {
       const raw = fs.readFileSync(path.join(dir, file), 'utf-8');
-      const parsed = JSON.parse(raw) as BlacklistRule;
+      const parsed = JSON.parse(raw) as {
+        id: string;
+        category: string;
+        weight: number;
+        words: string[];
+      };
       if (!isValidCategory(parsed.category)) {
         throw new Error(
-          `Invalid category "${parsed.category}" in ${file}`,
+          `Invalid category "${String(parsed.category)}" in ${file}`,
         );
       }
       rules.push({

@@ -57,7 +57,8 @@ export class AggregateResultStep implements PipelineStep<
     try {
       const ruleScore = input.ruleResult.score;
       const aiScore = input.aiResult.score;
-      const finalScore = RULE_SCORE_WEIGHT * ruleScore + AI_SCORE_WEIGHT * aiScore;
+      const finalScore =
+        RULE_SCORE_WEIGHT * ruleScore + AI_SCORE_WEIGHT * aiScore;
 
       const thresholdLevel: ContentRiskLevel =
         finalScore < MEDIUM_RISK_THRESHOLD
