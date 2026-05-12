@@ -85,7 +85,9 @@ export class ContentRiskChecksService {
         { checkId: existing.id, idempotent_hit: true },
         'Returning existing completed check',
       );
-      return contentRiskCheckToDto(existing);
+      return contentRiskCheckToDto(existing, undefined, {
+        prompt: activePrompt,
+      });
     }
 
     const check = await this.checksRepo.create({
@@ -103,7 +105,7 @@ export class ContentRiskChecksService {
       traceId: input.traceId,
     });
 
-    return contentRiskCheckToDto(check);
+    return contentRiskCheckToDto(check, undefined, { prompt: activePrompt });
   }
 
   async replayCheck(
@@ -163,7 +165,7 @@ export class ContentRiskChecksService {
       );
     }
 
-    return contentRiskCheckToDto(newCheck);
+    return contentRiskCheckToDto(newCheck, undefined, { prompt: activePrompt });
   }
 
   async getCheckById(
@@ -176,12 +178,16 @@ export class ContentRiskChecksService {
       throw new NotFoundException('Check not found');
     }
 
-    const analysisResult = await this.analysisResultsRepo.getByCheckId(
-      check.id,
-    );
+    const [analysisResult, prompt] = await Promise.all([
+      this.analysisResultsRepo.getByCheckId(check.id),
+      check.promptVersionId
+        ? this.promptsRepo.getById(check.promptVersionId)
+        : Promise.resolve(null),
+    ]);
 
     return contentRiskCheckToDto(check, analysisResult, {
       includeRawText: hasRawTextInclude(query.include),
+      prompt,
     });
   }
 

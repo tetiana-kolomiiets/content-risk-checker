@@ -47,6 +47,12 @@ export interface AnalysisResult {
   summary: string;
 }
 
+export interface PromptVersionSummary {
+  id: string;
+  name: string;
+  version: number;
+}
+
 export interface Check {
   id: string;
   status: CheckStatus;
@@ -54,6 +60,7 @@ export interface Check {
   contentHash: string;
   traceId: string;
   promptVersionId: string | null;
+  promptVersion?: PromptVersionSummary | null;
   replayOfCheckId: string | null;
   duplicateOfCheckId: string | null;
   retryCount: number;
