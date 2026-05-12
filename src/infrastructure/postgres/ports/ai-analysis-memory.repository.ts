@@ -1,6 +1,6 @@
-import { ContentRiskCategory } from '../../../domain/content-risk-checks/enums/content-risk-category.enum';
-import { ContentRiskLevel } from '../../../domain/content-risk-checks/enums/content-risk-level.enum';
-import { AiFewShotExample } from '../../../domain/content-risk-checks/schemas/ai-few-shot-example.schema';
+import { ContentRiskCategory } from '../../../shared/enums/content-risk-category.enum';
+import { ContentRiskLevel } from '../../../shared/enums/content-risk-level.enum';
+import { AiFewShotExample } from '../../../shared/schemas/ai-few-shot-example.schema';
 
 export const AI_ANALYSIS_MEMORY_REPOSITORY = 'AI_ANALYSIS_MEMORY_REPOSITORY';
 

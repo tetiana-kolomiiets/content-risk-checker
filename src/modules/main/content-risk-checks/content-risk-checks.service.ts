@@ -7,8 +7,8 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
-import { ContentRiskCheckStatus } from '../../../domain/content-risk-checks/enums/content-risk-check-status.enum';
-import { ContentRiskSourceType } from '../../../domain/content-risk-checks/enums/content-risk-source-type.enum';
+import { ContentRiskCheckStatus } from '../../../shared/enums/content-risk-check-status.enum';
+import { ContentRiskSourceType } from '../../../shared/enums/content-risk-source-type.enum';
 import {
   CONTENT_RISK_ANALYSIS_RESULTS_REPOSITORY,
   ContentRiskAnalysisResultsRepository,

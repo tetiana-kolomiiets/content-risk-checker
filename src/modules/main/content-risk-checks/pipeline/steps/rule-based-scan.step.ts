@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { RULE_WEIGHTS } from '../../../../../config/scoring.constants';
-import { ContentRiskCategory } from '../../../../../domain/content-risk-checks/enums/content-risk-category.enum';
-import { ContentRiskStepName } from '../../../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
-import { FlaggedFragment } from '../../../../../domain/content-risk-checks/schemas/flagged-fragment.schema';
-import { MatchedRule } from '../../../../../domain/content-risk-checks/schemas/matched-rule.schema';
+import { RULE_WEIGHTS } from '../../../../../infrastructure/config/scoring.constants';
+import { ContentRiskCategory } from '../../../../../shared/enums/content-risk-category.enum';
+import { ContentRiskStepName } from '../../../../../shared/enums/content-risk-step-name.enum';
+import { FlaggedFragment } from '../../../../../shared/schemas/flagged-fragment.schema';
+import { MatchedRule } from '../../../../../shared/schemas/matched-rule.schema';
 import { PipelineStep } from '../contracts/pipeline-step.interface';
 import { StepContext } from '../contracts/step-context.type';
 import { StepResult } from '../contracts/step-result.type';

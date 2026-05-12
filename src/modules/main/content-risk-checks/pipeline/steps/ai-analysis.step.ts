@@ -1,20 +1,20 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PinoLogger } from 'nestjs-pino';
-import type { EnvConfig } from '../../../../../config/env.schema';
-import { ContentRiskCategory } from '../../../../../domain/content-risk-checks/enums/content-risk-category.enum';
-import { ContentRiskStepName } from '../../../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
+import type { EnvConfig } from '../../../../../infrastructure/config/env.schema';
+import { ContentRiskCategory } from '../../../../../shared/enums/content-risk-category.enum';
+import { ContentRiskStepName } from '../../../../../shared/enums/content-risk-step-name.enum';
 import {
   AiAnalysisOutput,
   AiAnalysisOutputSchema,
-} from '../../../../../domain/content-risk-checks/schemas/ai-output.schema';
-import { AiFewShotExample } from '../../../../../domain/content-risk-checks/schemas/ai-few-shot-example.schema';
+} from '../../../../../shared/schemas/ai-output.schema';
+import { AiFewShotExample } from '../../../../../shared/schemas/ai-few-shot-example.schema';
 import { Prompt } from '../../../../../domain/content-risk-checks/types/prompt.type';
 import {
   LLM_CLIENT,
   LlmClient,
   LlmCompletionOutput,
-} from '../../../../../infrastructure/llm/llm.types';
+} from '../../../../../infrastructure/external/openrouter/llm-client.port';
 import {
   PROMPTS_REPOSITORY,
   PromptsRepository,

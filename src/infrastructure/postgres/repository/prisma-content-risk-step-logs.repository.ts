@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../../../../generated/prisma/client';
-import { ContentRiskStepName } from '../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
-import { StepExecutionStatus } from '../../../domain/content-risk-checks/enums/step-execution-status.enum';
+import { ContentRiskStepName } from '../../../shared/enums/content-risk-step-name.enum';
+import { StepExecutionStatus } from '../../../shared/enums/step-execution-status.enum';
 import { ContentRiskStepLogsRepository } from '../ports/content-risk-step-logs.repository';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../client/prisma.service';
 import {
   FAILED_TO_CREATE_CONTENT_RISK_STEP_LOG,
   FAILED_TO_GET_CONTENT_RISK_STEP_LOGS_BY_CHECK_ID,

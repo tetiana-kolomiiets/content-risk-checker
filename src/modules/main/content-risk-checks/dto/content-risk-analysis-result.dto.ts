@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ContentRiskCategory } from '../../../../domain/content-risk-checks/enums/content-risk-category.enum';
-import { ContentRiskLevel } from '../../../../domain/content-risk-checks/enums/content-risk-level.enum';
+import { ContentRiskCategory } from '../../../../shared/enums/content-risk-category.enum';
+import { ContentRiskLevel } from '../../../../shared/enums/content-risk-level.enum';
 import { FlaggedFragmentDto } from './flagged-fragment.dto';
 import { MatchedRuleDto } from './matched-rule.dto';
 

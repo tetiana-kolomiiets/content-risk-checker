@@ -1,7 +1,7 @@
-import { ContentRiskCategory } from '../../../domain/content-risk-checks/enums/content-risk-category.enum';
-import { ContentRiskLevel } from '../../../domain/content-risk-checks/enums/content-risk-level.enum';
-import { FlaggedFragment } from '../../../domain/content-risk-checks/schemas/flagged-fragment.schema';
-import { MatchedRule } from '../../../domain/content-risk-checks/schemas/matched-rule.schema';
+import { ContentRiskCategory } from '../../../shared/enums/content-risk-category.enum';
+import { ContentRiskLevel } from '../../../shared/enums/content-risk-level.enum';
+import { FlaggedFragment } from '../../../shared/schemas/flagged-fragment.schema';
+import { MatchedRule } from '../../../shared/schemas/matched-rule.schema';
 import { ContentRiskAnalysisResult } from '../../../domain/content-risk-checks/types/content-risk-analysis-result.type';
 
 export const CONTENT_RISK_ANALYSIS_RESULTS_REPOSITORY =

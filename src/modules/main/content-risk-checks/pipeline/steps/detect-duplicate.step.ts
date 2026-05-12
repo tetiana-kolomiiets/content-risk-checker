@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ContentRiskStepName } from '../../../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
+import { ContentRiskStepName } from '../../../../../shared/enums/content-risk-step-name.enum';
 import { ContentRiskAnalysisResult } from '../../../../../domain/content-risk-checks/types/content-risk-analysis-result.type';
 import { ContentRiskCheck } from '../../../../../domain/content-risk-checks/types/content-risk-check.type';
 import {

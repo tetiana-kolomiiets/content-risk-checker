@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../generated/prisma/client';
-import { ContentRiskCheckStatus } from '../../../domain/content-risk-checks/enums/content-risk-check-status.enum';
-import { ContentRiskSourceType } from '../../../domain/content-risk-checks/enums/content-risk-source-type.enum';
-import { ContentRiskStepName } from '../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
+import { ContentRiskCheckStatus } from '../../../shared/enums/content-risk-check-status.enum';
+import { ContentRiskSourceType } from '../../../shared/enums/content-risk-source-type.enum';
+import { ContentRiskStepName } from '../../../shared/enums/content-risk-step-name.enum';
 import { ContentRiskChecksRepository } from '../ports/content-risk-checks.repository';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../client/prisma.service';
 import {
   FAILED_TO_CREATE_CONTENT_RISK_CHECK,
   FAILED_TO_FIND_CONTENT_RISK_CHECK_BY_CONTENT_HASH,

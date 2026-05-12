@@ -4,13 +4,13 @@ import {
   HIGH_RISK_THRESHOLD,
   MEDIUM_RISK_THRESHOLD,
   RULE_SCORE_WEIGHT,
-} from '../../../../../config/scoring.constants';
-import { ContentRiskCategory } from '../../../../../domain/content-risk-checks/enums/content-risk-category.enum';
-import { ContentRiskLevel } from '../../../../../domain/content-risk-checks/enums/content-risk-level.enum';
-import { ContentRiskStepName } from '../../../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
-import { AiAnalysisOutput } from '../../../../../domain/content-risk-checks/schemas/ai-output.schema';
-import { FlaggedFragment } from '../../../../../domain/content-risk-checks/schemas/flagged-fragment.schema';
-import { MatchedRule } from '../../../../../domain/content-risk-checks/schemas/matched-rule.schema';
+} from '../../../../../infrastructure/config/scoring.constants';
+import { ContentRiskCategory } from '../../../../../shared/enums/content-risk-category.enum';
+import { ContentRiskLevel } from '../../../../../shared/enums/content-risk-level.enum';
+import { ContentRiskStepName } from '../../../../../shared/enums/content-risk-step-name.enum';
+import { AiAnalysisOutput } from '../../../../../shared/schemas/ai-output.schema';
+import { FlaggedFragment } from '../../../../../shared/schemas/flagged-fragment.schema';
+import { MatchedRule } from '../../../../../shared/schemas/matched-rule.schema';
 import { PipelineStep } from '../contracts/pipeline-step.interface';
 import { StepContext } from '../contracts/step-context.type';
 import { StepResult } from '../contracts/step-result.type';

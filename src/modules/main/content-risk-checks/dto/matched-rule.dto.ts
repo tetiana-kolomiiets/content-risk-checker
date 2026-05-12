@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ContentRiskCategory } from '../../../../domain/content-risk-checks/enums/content-risk-category.enum';
+import { ContentRiskCategory } from '../../../../shared/enums/content-risk-category.enum';
 
 class MatchedRuleFragmentDto {
   @ApiProperty()

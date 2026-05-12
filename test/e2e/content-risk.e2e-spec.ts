@@ -4,16 +4,16 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../../src/app.module';
-import { configureHttpApp } from '../../src/bootstrap/http.bootstrap';
-import { ContentRiskCheckStatus } from '../../src/domain/content-risk-checks/enums/content-risk-check-status.enum';
-import { ContentRiskStepName } from '../../src/domain/content-risk-checks/enums/content-risk-step-name.enum';
-import { StepExecutionStatus } from '../../src/domain/content-risk-checks/enums/step-execution-status.enum';
+import { configureHttpApp } from '../../src/http.bootstrap';
+import { ContentRiskCheckStatus } from '../../src/shared/enums/content-risk-check-status.enum';
+import { ContentRiskStepName } from '../../src/shared/enums/content-risk-step-name.enum';
+import { StepExecutionStatus } from '../../src/shared/enums/step-execution-status.enum';
 import {
   LLM_CLIENT,
   LlmClient,
   LlmCompletionOutput,
-} from '../../src/infrastructure/llm/llm.types';
-import { PrismaService } from '../../src/infrastructure/postgres/prisma/prisma.service';
+} from '../../src/infrastructure/external/openrouter/llm-client.port';
+import { PrismaService } from '../../src/infrastructure/postgres/client/prisma.service';
 import { PROMPTS_REPOSITORY } from '../../src/infrastructure/postgres/ports/prompts.repository';
 
 interface ApiEnvelope<T> {

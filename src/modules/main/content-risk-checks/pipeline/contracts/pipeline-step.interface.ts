@@ -1,4 +1,4 @@
-import { ContentRiskStepName } from '../../../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
+import { ContentRiskStepName } from '../../../../../shared/enums/content-risk-step-name.enum';
 import { StepContext } from './step-context.type';
 import { StepResult } from './step-result.type';
 

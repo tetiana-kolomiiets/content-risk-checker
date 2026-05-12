@@ -1,6 +1,6 @@
-import { ContentRiskCheckStatus } from '../enums/content-risk-check-status.enum';
-import { ContentRiskSourceType } from '../enums/content-risk-source-type.enum';
-import { ContentRiskStepName } from '../enums/content-risk-step-name.enum';
+import { ContentRiskCheckStatus } from '../../../shared/enums/content-risk-check-status.enum';
+import { ContentRiskSourceType } from '../../../shared/enums/content-risk-source-type.enum';
+import { ContentRiskStepName } from '../../../shared/enums/content-risk-step-name.enum';
 
 export type ContentRiskCheck = {
   id: string;

@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
-import { ContentRiskCheckStatus } from '../../../domain/content-risk-checks/enums/content-risk-check-status.enum';
-import { ContentRiskStepName } from '../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
-import { StepExecutionStatus } from '../../../domain/content-risk-checks/enums/step-execution-status.enum';
-import { StepDetailsSchema } from '../../../domain/content-risk-checks/schemas/step-details.schema';
+import { ContentRiskCheckStatus } from '../../../shared/enums/content-risk-check-status.enum';
+import { ContentRiskStepName } from '../../../shared/enums/content-risk-step-name.enum';
+import { StepExecutionStatus } from '../../../shared/enums/step-execution-status.enum';
+import { StepDetailsSchema } from '../../../shared/schemas/step-details.schema';
 import {
   CONTENT_RISK_ANALYSIS_RESULTS_REPOSITORY,
   ContentRiskAnalysisResultsRepository,

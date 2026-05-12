@@ -7,7 +7,7 @@ import {
   LlmClient,
   LlmCompletionInput,
   LlmCompletionOutput,
-} from './llm.types';
+} from './llm-client.port';
 
 @Injectable()
 export class OpenRouterClient implements LlmClient {

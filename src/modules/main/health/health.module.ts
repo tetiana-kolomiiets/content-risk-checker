@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TerminusModule } from '@nestjs/terminus';
-import { PrismaModule } from '../../../infrastructure/postgres/prisma/prisma.module';
+import { PrismaModule } from '../../../infrastructure/postgres/client/prisma.module';
 import { HealthController } from './health.controller';
 
 @Module({

@@ -1,6 +1,6 @@
-import { ContentRiskCheckStatus } from '../../../domain/content-risk-checks/enums/content-risk-check-status.enum';
-import { ContentRiskSourceType } from '../../../domain/content-risk-checks/enums/content-risk-source-type.enum';
-import { ContentRiskStepName } from '../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
+import { ContentRiskCheckStatus } from '../../../shared/enums/content-risk-check-status.enum';
+import { ContentRiskSourceType } from '../../../shared/enums/content-risk-source-type.enum';
+import { ContentRiskStepName } from '../../../shared/enums/content-risk-step-name.enum';
 import { ContentRiskCheck } from '../../../domain/content-risk-checks/types/content-risk-check.type';
 
 export const CONTENT_RISK_CHECKS_REPOSITORY = 'CONTENT_RISK_CHECKS_REPOSITORY';

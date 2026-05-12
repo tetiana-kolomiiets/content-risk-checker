@@ -1,10 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PinoLogger } from 'nestjs-pino';
-import type { EnvConfig } from '../../../../../config/env.schema';
-import { ContentRiskCategory } from '../../../../../domain/content-risk-checks/enums/content-risk-category.enum';
-import { ContentRiskLevel } from '../../../../../domain/content-risk-checks/enums/content-risk-level.enum';
-import { ContentRiskStepName } from '../../../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
+import type { EnvConfig } from '../../../../../infrastructure/config/env.schema';
+import { ContentRiskCategory } from '../../../../../shared/enums/content-risk-category.enum';
+import { ContentRiskLevel } from '../../../../../shared/enums/content-risk-level.enum';
+import { ContentRiskStepName } from '../../../../../shared/enums/content-risk-step-name.enum';
 import {
   AI_ANALYSIS_MEMORY_REPOSITORY,
   AiAnalysisMemoryRepository,

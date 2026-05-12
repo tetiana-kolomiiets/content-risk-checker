@@ -1,6 +1,6 @@
-import { ContentRiskCategory } from '../../../../domain/content-risk-checks/enums/content-risk-category.enum';
-import { ContentRiskLevel } from '../../../../domain/content-risk-checks/enums/content-risk-level.enum';
-import type { PrismaService } from '../../prisma/prisma.service';
+import { ContentRiskCategory } from '../../../../shared/enums/content-risk-category.enum';
+import { ContentRiskLevel } from '../../../../shared/enums/content-risk-level.enum';
+import type { PrismaService } from '../../client/prisma.service';
 import { PrismaAiAnalysisMemoryRepository } from '../prisma-ai-analysis-memory.repository';
 import {
   FAILED_TO_CREATE_AI_MEMORY,

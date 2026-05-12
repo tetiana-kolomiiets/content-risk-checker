@@ -2,14 +2,14 @@
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PinoLogger } from 'nestjs-pino';
-import { ContentRiskCategory } from '../../../../../../domain/content-risk-checks/enums/content-risk-category.enum';
-import { ContentRiskLevel } from '../../../../../../domain/content-risk-checks/enums/content-risk-level.enum';
-import { ContentRiskStepName } from '../../../../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
+import { ContentRiskCategory } from '../../../../../../shared/enums/content-risk-category.enum';
+import { ContentRiskLevel } from '../../../../../../shared/enums/content-risk-level.enum';
+import { ContentRiskStepName } from '../../../../../../shared/enums/content-risk-step-name.enum';
 import {
   LLM_CLIENT,
   LlmClient,
   LlmCompletionOutput,
-} from '../../../../../../infrastructure/llm/llm.types';
+} from '../../../../../../infrastructure/external/openrouter/llm-client.port';
 import {
   PROMPTS_REPOSITORY,
   PromptsRepository,

@@ -6,8 +6,8 @@ import {
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
-import { AllExceptionsFilter } from '../common/filters/all-exceptions.filter';
-import { ResponseInterceptor } from '../common/interceptors/response.interceptor';
+import { AllExceptionsFilter } from './infrastructure/common/filters/all-exceptions.filter';
+import { ResponseInterceptor } from './infrastructure/common/interceptors/response.interceptor';
 
 export function configureHttpApp(app: INestApplication): void {
   app.useLogger(app.get(Logger));

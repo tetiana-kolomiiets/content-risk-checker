@@ -11,8 +11,8 @@ import {
 import { ThrottlerException } from '@nestjs/throttler';
 import { Response } from 'express';
 import { Logger } from 'nestjs-pino';
-import { RepositoryError } from '../../infrastructure/postgres/repository/repository-error';
-import { PipelineFailedError } from '../../modules/main/content-risk-checks/pipeline/contracts';
+import { RepositoryError } from '../../postgres/repository/repository-error';
+import { PipelineFailedError } from '../../../modules/main/content-risk-checks/pipeline/contracts';
 import { TraceContext } from '../tracing/trace-context';
 import { ApiErrorResponse } from '../types/api-response';
 

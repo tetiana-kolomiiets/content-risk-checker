@@ -2,8 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
-import { configureHttpApp } from './bootstrap/http.bootstrap';
-import type { EnvConfig } from './config/env.schema';
+import { configureHttpApp } from './http.bootstrap';
+import type { EnvConfig } from './infrastructure/config/env.schema';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(

@@ -1,5 +1,5 @@
-import { ContentRiskCategory } from '../../../../../../domain/content-risk-checks/enums/content-risk-category.enum';
-import { ContentRiskStepName } from '../../../../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
+import { ContentRiskCategory } from '../../../../../../shared/enums/content-risk-category.enum';
+import { ContentRiskStepName } from '../../../../../../shared/enums/content-risk-step-name.enum';
 import { StepContext } from '../../contracts/step-context.type';
 import { RuleBasedScanStep } from '../rule-based-scan.step';
 import { BlacklistRule, RulesProvider } from '../rules.provider';

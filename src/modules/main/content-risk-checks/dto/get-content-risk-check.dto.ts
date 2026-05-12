@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsArray, IsEnum, IsOptional } from 'class-validator';
-import { ContentRiskCheckStatus } from '../../../../domain/content-risk-checks/enums/content-risk-check-status.enum';
+import { ContentRiskCheckStatus } from '../../../../shared/enums/content-risk-check-status.enum';
 
 export enum ContentRiskCheckIncludeField {
   RAW_TEXT = 'rawText',

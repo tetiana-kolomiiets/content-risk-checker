@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { ContentRiskCategory } from '../../../../../../domain/content-risk-checks/enums/content-risk-category.enum';
-import { ContentRiskCheckStatus } from '../../../../../../domain/content-risk-checks/enums/content-risk-check-status.enum';
-import { ContentRiskLevel } from '../../../../../../domain/content-risk-checks/enums/content-risk-level.enum';
-import { ContentRiskSourceType } from '../../../../../../domain/content-risk-checks/enums/content-risk-source-type.enum';
-import { ContentRiskStepName } from '../../../../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
+import { ContentRiskCategory } from '../../../../../../shared/enums/content-risk-category.enum';
+import { ContentRiskCheckStatus } from '../../../../../../shared/enums/content-risk-check-status.enum';
+import { ContentRiskLevel } from '../../../../../../shared/enums/content-risk-level.enum';
+import { ContentRiskSourceType } from '../../../../../../shared/enums/content-risk-source-type.enum';
+import { ContentRiskStepName } from '../../../../../../shared/enums/content-risk-step-name.enum';
 import { ContentRiskAnalysisResult } from '../../../../../../domain/content-risk-checks/types/content-risk-analysis-result.type';
 import { ContentRiskCheck } from '../../../../../../domain/content-risk-checks/types/content-risk-check.type';
 import { ContentRiskAnalysisResultsRepository } from '../../../../../../infrastructure/postgres/ports/content-risk-analysis-results.repository';

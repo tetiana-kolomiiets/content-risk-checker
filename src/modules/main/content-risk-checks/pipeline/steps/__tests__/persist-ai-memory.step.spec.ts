@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { ConfigService } from '@nestjs/config';
 import { PinoLogger } from 'nestjs-pino';
-import { ContentRiskCategory } from '../../../../../../domain/content-risk-checks/enums/content-risk-category.enum';
-import { ContentRiskLevel } from '../../../../../../domain/content-risk-checks/enums/content-risk-level.enum';
-import { ContentRiskStepName } from '../../../../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
+import { ContentRiskCategory } from '../../../../../../shared/enums/content-risk-category.enum';
+import { ContentRiskLevel } from '../../../../../../shared/enums/content-risk-level.enum';
+import { ContentRiskStepName } from '../../../../../../shared/enums/content-risk-step-name.enum';
 import { AiAnalysisMemoryRepository } from '../../../../../../infrastructure/postgres/ports/ai-analysis-memory.repository';
 import { StepContext } from '../../contracts/step-context.type';
 import { PersistAiMemoryStep } from '../persist-ai-memory.step';

@@ -1,5 +1,5 @@
-import { ContentRiskStepName } from '../enums/content-risk-step-name.enum';
-import { StepExecutionStatus } from '../enums/step-execution-status.enum';
+import { ContentRiskStepName } from '../../../shared/enums/content-risk-step-name.enum';
+import { StepExecutionStatus } from '../../../shared/enums/step-execution-status.enum';
 
 export type ContentRiskStepLog = {
   id: string;

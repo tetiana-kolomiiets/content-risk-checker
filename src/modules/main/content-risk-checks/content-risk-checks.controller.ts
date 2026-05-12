@@ -17,7 +17,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { TraceContext } from '../../../common/tracing/trace-context';
+import { TraceContext } from '../../../infrastructure/common/tracing/trace-context';
 import { ContentRiskChecksService } from './content-risk-checks.service';
 import { ContentRiskCheckDto } from './dto/content-risk-check.dto';
 import { ContentRiskStepLogDto } from './dto/content-risk-step-log.dto';

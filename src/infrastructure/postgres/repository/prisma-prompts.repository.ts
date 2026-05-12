@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { Prompt } from '../../../domain/content-risk-checks/types/prompt.type';
 import { PromptsRepository } from '../ports/prompts.repository';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../client/prisma.service';
 import { toDomainPrompt } from './mappers/to-domain-prompt.mapper';
 import {
   FAILED_TO_GET_ACTIVE_PROMPT_BY_NAME,

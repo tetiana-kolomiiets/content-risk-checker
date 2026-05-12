@@ -9,14 +9,12 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import pino from 'pino';
-import { TraceContext } from './common/tracing/trace-context';
-import { TraceMiddleware } from './common/tracing/trace.middleware';
-import { ConfigModule } from './config/config.module';
-import type { EnvConfig } from './config/env.schema';
-import { EmbeddingModule } from './infrastructure/embedding/embedding.module';
-import { LlmModule } from './infrastructure/llm/llm.module';
-import { PrismaModule } from './infrastructure/postgres/prisma/prisma.module';
-import { AiMemoryModule } from './modules/main/ai-memory/ai-memory.module';
+import { TraceContext } from './infrastructure/common/tracing/trace-context';
+import { TraceMiddleware } from './infrastructure/common/tracing/trace.middleware';
+import { ConfigModule } from './infrastructure/config/config.module';
+import type { EnvConfig } from './infrastructure/config/env.schema';
+import { OpenRouterModule } from './infrastructure/external/openrouter/openrouter.module';
+import { PrismaModule } from './infrastructure/postgres/client/prisma.module';
 import { ContentRiskChecksModule } from './modules/main/content-risk-checks/content-risk-checks.module';
 import { HealthModule } from './modules/main/health/health.module';
 import { PromptsModule } from './modules/main/prompts/prompts.module';
@@ -89,14 +87,12 @@ export class AppModule implements NestModule {
           ],
         }),
         PrismaModule,
-        LlmModule,
-        EmbeddingModule,
+        OpenRouterModule,
         HealthModule,
         ContentRiskChecksModule.register({
           enableWorker: options.enableWorker,
         }),
         PromptsModule,
-        AiMemoryModule,
       ],
       providers: [
         ...(process.env.NODE_ENV === 'test'

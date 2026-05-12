@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
-import type { EnvConfig } from '../../config/env.schema';
+import type { EnvConfig } from '../../infrastructure/config/env.schema';
 
 export const CONTENT_RISK_ANALYSIS_QUEUE = 'content-risk-analysis';
 

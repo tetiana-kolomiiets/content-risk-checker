@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../../generated/prisma/client';
-import { ContentRiskCategory } from '../../../domain/content-risk-checks/enums/content-risk-category.enum';
-import { ContentRiskLevel } from '../../../domain/content-risk-checks/enums/content-risk-level.enum';
-import { AiFewShotExample } from '../../../domain/content-risk-checks/schemas/ai-few-shot-example.schema';
+import { ContentRiskCategory } from '../../../shared/enums/content-risk-category.enum';
+import { ContentRiskLevel } from '../../../shared/enums/content-risk-level.enum';
+import { AiFewShotExample } from '../../../shared/schemas/ai-few-shot-example.schema';
 import {
   AiAnalysisMemoryRepository,
   CreateAiAnalysisMemoryInput,
   FindSimilarOptions,
 } from '../ports/ai-analysis-memory.repository';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../client/prisma.service';
 import {
   FAILED_TO_CREATE_AI_MEMORY,
   FAILED_TO_FIND_SIMILAR_AI_MEMORIES,

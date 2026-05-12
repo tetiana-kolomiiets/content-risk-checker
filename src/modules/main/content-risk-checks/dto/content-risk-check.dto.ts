@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ContentRiskCheckStatus } from '../../../../domain/content-risk-checks/enums/content-risk-check-status.enum';
-import { ContentRiskSourceType } from '../../../../domain/content-risk-checks/enums/content-risk-source-type.enum';
-import { ContentRiskStepName } from '../../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
+import { ContentRiskCheckStatus } from '../../../../shared/enums/content-risk-check-status.enum';
+import { ContentRiskSourceType } from '../../../../shared/enums/content-risk-source-type.enum';
+import { ContentRiskStepName } from '../../../../shared/enums/content-risk-step-name.enum';
 import { ContentRiskAnalysisResultDto } from './content-risk-analysis-result.dto';
 
 export class PromptVersionSummaryDto {

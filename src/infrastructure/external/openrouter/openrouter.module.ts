@@ -2,11 +2,15 @@ import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { EnvConfig } from '../../config/env.schema';
 import { EMBEDDING_CLIENT } from './embedding-client.port';
+import { LLM_CLIENT } from './llm-client.port';
+import { OpenRouterClient } from './openrouter.client';
 import { OpenRouterEmbeddingClient } from './openrouter-embedding.client';
 
 @Global()
 @Module({
   providers: [
+    OpenRouterClient,
+    { provide: LLM_CLIENT, useExisting: OpenRouterClient },
     {
       provide: EMBEDDING_CLIENT,
       useFactory: (config: ConfigService<EnvConfig, true>) =>
@@ -19,6 +23,6 @@ import { OpenRouterEmbeddingClient } from './openrouter-embedding.client';
       inject: [ConfigService],
     },
   ],
-  exports: [EMBEDDING_CLIENT],
+  exports: [LLM_CLIENT, EMBEDDING_CLIENT],
 })
-export class EmbeddingModule {}
+export class OpenRouterModule {}

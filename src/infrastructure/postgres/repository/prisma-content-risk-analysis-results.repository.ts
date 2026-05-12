@@ -1,17 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../../../../generated/prisma/client';
-import { ContentRiskCategory } from '../../../domain/content-risk-checks/enums/content-risk-category.enum';
-import { ContentRiskLevel } from '../../../domain/content-risk-checks/enums/content-risk-level.enum';
+import { ContentRiskCategory } from '../../../shared/enums/content-risk-category.enum';
+import { ContentRiskLevel } from '../../../shared/enums/content-risk-level.enum';
 import {
   FlaggedFragment,
   FlaggedFragmentSchema,
-} from '../../../domain/content-risk-checks/schemas/flagged-fragment.schema';
+} from '../../../shared/schemas/flagged-fragment.schema';
 import {
   MatchedRule,
   MatchedRuleSchema,
-} from '../../../domain/content-risk-checks/schemas/matched-rule.schema';
+} from '../../../shared/schemas/matched-rule.schema';
 import { ContentRiskAnalysisResultsRepository } from '../ports/content-risk-analysis-results.repository';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../client/prisma.service';
 import {
   FAILED_TO_CREATE_CONTENT_RISK_ANALYSIS_RESULT,
   FAILED_TO_DELETE_CONTENT_RISK_ANALYSIS_RESULT,

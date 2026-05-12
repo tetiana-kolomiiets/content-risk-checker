@@ -1,4 +1,4 @@
-import { StepDetails } from '../../../../../domain/content-risk-checks/schemas/step-details.schema';
+import { StepDetails } from '../../../../../shared/schemas/step-details.schema';
 
 export type StepResult<O> =
   | { ok: true; output: O; details: StepDetails }

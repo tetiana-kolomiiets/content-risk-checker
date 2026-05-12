@@ -11,7 +11,7 @@ import {
   PROMPTS_REPOSITORY,
   PromptsRepository,
 } from '../../../infrastructure/postgres/ports/prompts.repository';
-import { PrismaService } from '../../../infrastructure/postgres/prisma/prisma.service';
+import { PrismaService } from '../../../infrastructure/postgres/client/prisma.service';
 
 @ApiTags('prompts')
 @Controller({ path: 'prompts', version: '1' })

@@ -1,8 +1,8 @@
 import type { ContentRiskAnalysisResult as PrismaContentRiskAnalysisResult } from '../../../../../generated/prisma/client';
-import { ContentRiskCategory } from '../../../../domain/content-risk-checks/enums/content-risk-category.enum';
-import { ContentRiskLevel } from '../../../../domain/content-risk-checks/enums/content-risk-level.enum';
-import { FlaggedFragmentSchema } from '../../../../domain/content-risk-checks/schemas/flagged-fragment.schema';
-import { MatchedRuleSchema } from '../../../../domain/content-risk-checks/schemas/matched-rule.schema';
+import { ContentRiskCategory } from '../../../../shared/enums/content-risk-category.enum';
+import { ContentRiskLevel } from '../../../../shared/enums/content-risk-level.enum';
+import { FlaggedFragmentSchema } from '../../../../shared/schemas/flagged-fragment.schema';
+import { MatchedRuleSchema } from '../../../../shared/schemas/matched-rule.schema';
 import type { ContentRiskAnalysisResult } from '../../../../domain/content-risk-checks/types/content-risk-analysis-result.type';
 
 export const toDomainContentRiskAnalysisResult = (

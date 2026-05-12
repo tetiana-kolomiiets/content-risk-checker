@@ -9,8 +9,8 @@ import {
   HealthIndicatorService,
 } from '@nestjs/terminus';
 import Redis from 'ioredis';
-import { EnvConfig } from '../../../config/env.schema';
-import { PrismaService } from '../../../infrastructure/postgres/prisma/prisma.service';
+import { EnvConfig } from '../../../infrastructure/config/env.schema';
+import { PrismaService } from '../../../infrastructure/postgres/client/prisma.service';
 
 @ApiTags('health')
 @Controller({ path: 'health', version: '1' })

@@ -3,10 +3,10 @@ import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import { Job } from 'bullmq';
 import { PinoLogger } from 'nestjs-pino';
-import { TraceContext } from '../../../common/tracing/trace-context';
-import { ContentRiskCheckStatus } from '../../../domain/content-risk-checks/enums/content-risk-check-status.enum';
-import { ContentRiskStepName } from '../../../domain/content-risk-checks/enums/content-risk-step-name.enum';
-import { StepExecutionStatus } from '../../../domain/content-risk-checks/enums/step-execution-status.enum';
+import { TraceContext } from '../../../infrastructure/common/tracing/trace-context';
+import { ContentRiskCheckStatus } from '../../../shared/enums/content-risk-check-status.enum';
+import { ContentRiskStepName } from '../../../shared/enums/content-risk-step-name.enum';
+import { StepExecutionStatus } from '../../../shared/enums/step-execution-status.enum';
 import {
   CONTENT_RISK_CHECKS_REPOSITORY,
   ContentRiskChecksRepository,
@@ -15,7 +15,7 @@ import {
   CONTENT_RISK_STEP_LOGS_REPOSITORY,
   ContentRiskStepLogsRepository,
 } from '../../../infrastructure/postgres/ports/content-risk-step-logs.repository';
-import type { EnvConfig } from '../../../config/env.schema';
+import type { EnvConfig } from '../../../infrastructure/config/env.schema';
 import { CONTENT_RISK_ANALYSIS_QUEUE } from '../../queue/queue.module';
 import { AnalysisJobPayload } from './analysis.queue';
 import { ContentRiskChecksPipelineService } from './content-risk-checks-pipeline.service';

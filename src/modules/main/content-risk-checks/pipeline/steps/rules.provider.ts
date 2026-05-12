@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
-import { ContentRiskCategory } from '../../../../../domain/content-risk-checks/enums/content-risk-category.enum';
+import { ContentRiskCategory } from '../../../../../shared/enums/content-risk-category.enum';
 
 export interface BlacklistRule {
   id: string;

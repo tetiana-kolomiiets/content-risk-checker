@@ -7,7 +7,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { ContentRiskSourceType } from '../../../../domain/content-risk-checks/enums/content-risk-source-type.enum';
+import { ContentRiskSourceType } from '../../../../shared/enums/content-risk-source-type.enum';
 
 export class CreateContentRiskCheckDto {
   @ApiProperty()
