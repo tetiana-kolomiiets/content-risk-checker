@@ -193,7 +193,7 @@ export function CheckDetail({ checkId, onCheckLoaded }: CheckDetailProps) {
 
       <div className="border-t border-border px-6 py-4">
         <div className="mb-3 text-sm font-medium text-text-secondary">Pipeline</div>
-        <PipelineTimeline logs={logs} />
+        <PipelineTimeline logs={logs} currentStep={check.currentStep} checkStatus={check.status} />
       </div>
 
       <div className="border-t border-border px-6 py-4">

@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { FiLoader, FiSend } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
+import { checksEvents } from '@/lib/checks-events';
 import { ApiError } from '@/lib/types';
 import { LivePipeline } from './LivePipeline';
 
@@ -63,7 +64,9 @@ export function NewCheckForm({ hasExistingChecks }: NewCheckFormProps) {
     setIsSubmitting(true);
 
     try {
-      const check = await api.createCheck({ text: text.trim() });
+      const trimmedText = text.trim();
+      const check = await api.createCheck({ text: trimmedText });
+      checksEvents.emitCreated({ ...check, rawText: check.rawText ?? trimmedText });
       setSubmittingCheckId(check.id);
     } catch (err) {
       if (err instanceof ApiError) {

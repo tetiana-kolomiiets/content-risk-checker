@@ -86,6 +86,42 @@ describe('PrismaAiAnalysisMemoryRepository', () => {
         message: FAILED_TO_FIND_SIMILAR_AI_MEMORIES,
       });
     });
+
+    it('parses Postgres enum-array string format into a JS array', async () => {
+      queryRaw.mockResolvedValueOnce([
+        {
+          contentSnippet: 'a',
+          finalRiskLevel: ContentRiskLevel.HIGH,
+          categories: '{HATE,TOXICITY}',
+          rationale: 'r1',
+          similarity: 0.9,
+        },
+        {
+          contentSnippet: 'b',
+          finalRiskLevel: ContentRiskLevel.LOW,
+          categories: '{}',
+          rationale: 'r2',
+          similarity: 0.88,
+        },
+      ]);
+
+      const result = await repo.findSimilar(
+        buildEmbedding(),
+        PROMPT_VERSION_ID,
+        {
+          topN: 3,
+          minSimilarity: 0.85,
+          excludeCheckId: CHECK_ID,
+        },
+      );
+
+      expect(result).toHaveLength(2);
+      expect(result[0].categories).toEqual([
+        ContentRiskCategory.HATE,
+        ContentRiskCategory.TOXICITY,
+      ]);
+      expect(result[1].categories).toEqual([]);
+    });
   });
 
   describe('create', () => {

@@ -20,10 +20,36 @@ interface LivePipelineProps {
   onComplete: (checkId: string) => void;
 }
 
-function getStepStatus(log: StepLog | undefined, currentStep: StepName | null, stepName: StepName): TimelineStepStatus {
+function getStepStatus(
+  log: StepLog | undefined,
+  isActiveStep: boolean,
+  isBeforeActive: boolean,
+): TimelineStepStatus {
+  if (isActiveStep) {
+    if (log?.status === 'COMPLETED') {
+      return 'done';
+    }
+    if (log?.status === 'FAILED') {
+      return 'failed';
+    }
+    if (log?.status === 'SKIPPED') {
+      return 'skipped';
+    }
+    return 'active';
+  }
+
+  if (isBeforeActive) {
+    if (log?.status === 'FAILED') {
+      return 'failed';
+    }
+    if (log?.status === 'SKIPPED') {
+      return 'skipped';
+    }
+    return 'done';
+  }
+
   if (!log) {
-    const isCurrentStep = currentStep === stepName;
-    return isCurrentStep ? 'active' : 'pending';
+    return 'pending';
   }
 
   if (log.status === 'COMPLETED') {
@@ -38,7 +64,7 @@ function getStepStatus(log: StepLog | undefined, currentStep: StepName | null, s
     return 'skipped';
   }
 
-  return 'active';
+  return 'pending';
 }
 
 export function LivePipeline({ checkId, onComplete }: LivePipelineProps) {
@@ -48,8 +74,21 @@ export function LivePipeline({ checkId, onComplete }: LivePipelineProps) {
   const [elapsedMs, setElapsedMs] = useState(0);
 
   const logsByStepName = useMemo(() => {
-    return new Map(logs.map((log) => [log.stepName, log]));
+    const byStep = new Map<StepName, StepLog>();
+    for (const log of logs) {
+      const existing = byStep.get(log.stepName);
+      if (!existing || log.attempt > existing.attempt || new Date(log.startedAt) > new Date(existing.startedAt)) {
+        byStep.set(log.stepName, log);
+      }
+    }
+    return byStep;
   }, [logs]);
+
+  const isTerminal = check?.status === 'COMPLETED' || check?.status === 'FAILED';
+  const activeStepName: StepName | null = !isTerminal ? check?.currentStep ?? null : null;
+  const activeStepIndex = activeStepName
+    ? PIPELINE_STEPS.findIndex((step) => step.name === activeStepName)
+    : -1;
 
   useEffect(() => {
     const startedAtMs = Date.now();
@@ -109,9 +148,11 @@ export function LivePipeline({ checkId, onComplete }: LivePipelineProps) {
       </p>
 
       <div className="space-y-1" role="status" aria-live="polite" aria-atomic="false">
-        {PIPELINE_STEPS.map((step) => {
+        {PIPELINE_STEPS.map((step, index) => {
           const log = logsByStepName.get(step.name);
-          const status = getStepStatus(log, check?.currentStep ?? null, step.name);
+          const isActiveStep = activeStepName === step.name;
+          const isBeforeActive = activeStepIndex !== -1 && index < activeStepIndex;
+          const status = getStepStatus(log, isActiveStep, isBeforeActive);
           const isPendingStep = status === 'pending';
 
           return (

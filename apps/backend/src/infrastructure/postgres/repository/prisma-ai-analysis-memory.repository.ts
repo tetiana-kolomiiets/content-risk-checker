@@ -18,13 +18,29 @@ import { RepositoryError } from './repository-error';
 interface SimilarRow {
   contentSnippet: string;
   finalRiskLevel: ContentRiskLevel;
-  categories: ContentRiskCategory[];
+  categories: ContentRiskCategory[] | string;
   rationale: string;
   similarity: number;
 }
 
 const toVectorLiteral = (embedding: number[]): string =>
   `[${embedding.join(',')}]`;
+
+const parsePgEnumArray = <T extends string>(value: unknown): T[] => {
+  if (Array.isArray(value)) {
+    return value as T[];
+  }
+  if (typeof value !== 'string') {
+    return [];
+  }
+  const stripped = value.replace(/^\{/, '').replace(/\}$/, '');
+  if (stripped.length === 0) {
+    return [];
+  }
+  return stripped
+    .split(',')
+    .map((entry) => entry.trim().replace(/^"(.*)"$/, '$1')) as T[];
+};
 
 @Injectable()
 export class PrismaAiAnalysisMemoryRepository implements AiAnalysisMemoryRepository {
@@ -58,7 +74,7 @@ export class PrismaAiAnalysisMemoryRepository implements AiAnalysisMemoryReposit
         .map((r) => ({
           contentSnippet: r.contentSnippet,
           finalRiskLevel: r.finalRiskLevel,
-          categories: r.categories,
+          categories: parsePgEnumArray<ContentRiskCategory>(r.categories),
           rationale: r.rationale,
           similarity: r.similarity,
         }));

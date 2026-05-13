@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FiInbox, FiPlus, FiSearch } from 'react-icons/fi';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useMatch } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
 import { api } from '@/lib/api';
+import { checksEvents } from '@/lib/checks-events';
 import { formatRelativeTime, truncate } from '@/lib/format';
 import type { Check, CheckStatus } from '@/lib/types';
 
@@ -14,7 +15,8 @@ const FILTERS: { value: CheckStatus | 'ALL'; label: string }[] = [
 ];
 
 export function Sidebar() {
-  const { id: activeId } = useParams<{ id: string }>();
+  const checkRouteMatch = useMatch('/checks/:id');
+  const activeId = checkRouteMatch?.params.id;
   const [checks, setChecks] = useState<Check[]>([]);
   const [filter, setFilter] = useState<CheckStatus | 'ALL'>('ALL');
   const [search, setSearch] = useState('');
@@ -54,8 +56,21 @@ export function Sidebar() {
 
     void loadChecks();
 
+    const unsubscribe = checksEvents.onCreated((newCheck) => {
+      const matchesFilter = filter === 'ALL' || newCheck.status === filter;
+      if (matchesFilter) {
+        setChecks((prev) => (prev.some((c) => c.id === newCheck.id) ? prev : [newCheck, ...prev]));
+      }
+
+      const isActive = newCheck.status === 'PENDING' || newCheck.status === 'PROCESSING';
+      if (isActive && pollingId == null) {
+        pollingId = window.setInterval(loadChecks, 3000);
+      }
+    });
+
     return () => {
       cancelled = true;
+      unsubscribe();
       if (pollingId != null) {
         window.clearInterval(pollingId);
       }
@@ -149,9 +164,12 @@ function SidebarItem({ check, active }: { check: Check; active: boolean }) {
   return (
     <Link
       to={`/checks/${check.id}`}
-      className={`flex items-center gap-3 rounded-md p-2.5 transition-colors ${
-        isActiveItem ? 'bg-accent/10' : 'hover:bg-border-subtle'
+      className={`relative flex items-center gap-3 rounded-md p-2.5 transition-colors ${
+        isActiveItem
+          ? "bg-accent/10 before:absolute before:bottom-1.5 before:left-0 before:top-1.5 before:w-1 before:rounded-r before:bg-accent before:content-['']"
+          : 'hover:bg-border-subtle'
       }`}
+      aria-current={isActiveItem ? 'page' : undefined}
     >
       <span className={`h-2 w-2 flex-shrink-0 rounded-full ${dotColorClass}`} />
 
