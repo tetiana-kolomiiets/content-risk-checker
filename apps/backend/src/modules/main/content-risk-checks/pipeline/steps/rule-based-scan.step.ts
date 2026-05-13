@@ -28,6 +28,23 @@ function blacklistToRule(rule: BlacklistRule): Rule {
   };
 }
 
+const URL_SHORTENER_HOSTS = [
+  'bit\\.ly',
+  'tinyurl\\.com',
+  't\\.co',
+  'goo\\.gl',
+  'ow\\.ly',
+  'is\\.gd',
+  'buff\\.ly',
+  'tiny\\.cc',
+  'cutt\\.ly',
+  'rb\\.gy',
+  'lnkd\\.in',
+];
+const URL_SHORTENER_RE = new RegExp(
+  `https?://(?:${URL_SHORTENER_HOSTS.join('|')})/\\S+`,
+);
+
 const STATIC_RULES: Rule[] = [
   {
     id: 'many_urls',
@@ -64,6 +81,64 @@ const STATIC_RULES: Rule[] = [
     weight: RULE_WEIGHTS.SCAM,
     test: (text) => {
       const m = text.match(/https?:\/\/\S+\.(?:tk|zip|click|top|xyz)\b\S*/);
+      return m ? [{ fragment: m[0] }] : null;
+    },
+  },
+  {
+    id: 'crypto_wallet',
+    category: ContentRiskCategory.SCAM,
+    weight: RULE_WEIGHTS.CRYPTO_WALLET,
+    test: (text) => {
+      const m = text.match(
+        /\b(?:0x[a-f0-9]{40}|bc1[a-z0-9]{6,87}|[13][a-z0-9]{25,34})\b/,
+      );
+      return m ? [{ fragment: m[0] }] : null;
+    },
+  },
+  {
+    id: 'url_shortener',
+    category: ContentRiskCategory.SPAM,
+    weight: RULE_WEIGHTS.URL_SHORTENER,
+    test: (text) => {
+      const matches = [...text.matchAll(new RegExp(URL_SHORTENER_RE, 'g'))];
+      return matches.length > 0
+        ? matches.slice(0, 5).map((m) => ({ fragment: m[0] }))
+        : null;
+    },
+  },
+  {
+    id: 'ip_address_url',
+    category: ContentRiskCategory.SCAM,
+    weight: RULE_WEIGHTS.IP_ADDRESS_URL,
+    test: (text) => {
+      const m = text.match(/https?:\/\/(?:\d{1,3}\.){3}\d{1,3}\S*/);
+      return m ? [{ fragment: m[0] }] : null;
+    },
+  },
+  {
+    id: 'censored_profanity',
+    category: ContentRiskCategory.TOXICITY,
+    weight: RULE_WEIGHTS.CENSORED_PROFANITY,
+    test: (text) => {
+      const m = text.match(/[a-z]\*{2,}[a-z]?/);
+      return m ? [{ fragment: m[0] }] : null;
+    },
+  },
+  {
+    id: 'repeated_word',
+    category: ContentRiskCategory.SPAM,
+    weight: RULE_WEIGHTS.REPEATED_WORD,
+    test: (text) => {
+      const m = text.match(/\b(\w{2,})\b(?:\s+\1\b){2,}/);
+      return m ? [{ fragment: m[0] }] : null;
+    },
+  },
+  {
+    id: 'credit_card_pattern',
+    category: ContentRiskCategory.SCAM,
+    weight: RULE_WEIGHTS.CREDIT_CARD,
+    test: (text) => {
+      const m = text.match(/\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/);
       return m ? [{ fragment: m[0] }] : null;
     },
   },
