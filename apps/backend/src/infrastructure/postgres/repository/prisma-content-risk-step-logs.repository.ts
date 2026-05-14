@@ -7,6 +7,7 @@ import { PrismaService } from '../client/prisma.service';
 import {
   FAILED_TO_CREATE_CONTENT_RISK_STEP_LOG,
   FAILED_TO_GET_CONTENT_RISK_STEP_LOGS_BY_CHECK_ID,
+  FAILED_TO_GET_CONTENT_RISK_STEP_LOGS_BY_TRACE_ID,
   FAILED_TO_UPDATE_CONTENT_RISK_STEP_LOG,
 } from './repository-error-messages';
 import { RepositoryError } from './repository-error';
@@ -102,6 +103,23 @@ export class PrismaContentRiskStepLogsRepository implements ContentRiskStepLogsR
       throw new RepositoryError(
         FAILED_TO_GET_CONTENT_RISK_STEP_LOGS_BY_CHECK_ID,
         FAILED_TO_GET_CONTENT_RISK_STEP_LOGS_BY_CHECK_ID,
+        err,
+      );
+    }
+  }
+
+  async getByTraceId(traceId: string) {
+    try {
+      const rows = await this.prismaService.contentRiskStepLog.findMany({
+        where: { traceId },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      return rows.map(toDomainContentRiskStepLog);
+    } catch (err) {
+      throw new RepositoryError(
+        FAILED_TO_GET_CONTENT_RISK_STEP_LOGS_BY_TRACE_ID,
+        FAILED_TO_GET_CONTENT_RISK_STEP_LOGS_BY_TRACE_ID,
         err,
       );
     }

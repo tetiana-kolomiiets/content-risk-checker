@@ -50,6 +50,17 @@ export class ContentRiskChecksController {
     return this.service.getChecks(query);
   }
 
+  @Get('by-trace/:traceId/logs')
+  @ApiOperation({
+    summary: 'Get step execution logs by trace id (cross-check debugging)',
+  })
+  @ApiOkResponse({ type: ContentRiskStepLogDto, isArray: true })
+  async getLogsByTraceId(
+    @Param('traceId') traceId: string,
+  ): Promise<ContentRiskStepLogDto[]> {
+    return this.service.getStepLogsByTraceId(traceId);
+  }
+
   @Get(':id/logs')
   @ApiOperation({ summary: 'Get step execution logs for a check' })
   @ApiOkResponse({ type: ContentRiskStepLogDto, isArray: true })

@@ -33,4 +33,6 @@ export interface ContentRiskStepLogsRepository {
   ): Promise<ContentRiskStepLog>;
 
   getByCheckId(checkId: string): Promise<ContentRiskStepLog[]>;
+
+  getByTraceId(traceId: string): Promise<ContentRiskStepLog[]>;
 }

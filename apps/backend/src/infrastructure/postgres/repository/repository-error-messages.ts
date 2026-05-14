@@ -24,6 +24,8 @@ export const FAILED_TO_UPDATE_CONTENT_RISK_STEP_LOG =
   'Failed to update content risk step log';
 export const FAILED_TO_GET_CONTENT_RISK_STEP_LOGS_BY_CHECK_ID =
   'Failed to get content risk step logs by check id';
+export const FAILED_TO_GET_CONTENT_RISK_STEP_LOGS_BY_TRACE_ID =
+  'Failed to get content risk step logs by trace id';
 
 export const FAILED_TO_GET_ACTIVE_PROMPT_BY_NAME =
   'Failed to get active prompt by name';

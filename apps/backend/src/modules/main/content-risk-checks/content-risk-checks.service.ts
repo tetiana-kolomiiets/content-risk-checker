@@ -215,4 +215,12 @@ export class ContentRiskChecksService {
 
     return logs.map(contentRiskStepLogToDto);
   }
+
+  async getStepLogsByTraceId(
+    traceId: string,
+  ): Promise<ContentRiskStepLogDto[]> {
+    const logs = await this.stepLogsRepo.getByTraceId(traceId);
+
+    return logs.map(contentRiskStepLogToDto);
+  }
 }
